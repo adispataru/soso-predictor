@@ -68,6 +68,8 @@ public class PredictionFactory {
             result.setAverage(sum/list.size());
             result.setHistogram(pickFromHistogram(histogram));
         }else{
+            result.setMax(.0);
+            result.setMin(.0);
             result.setAverage(.0);
             result.setHistogram(.0);
         }
@@ -97,6 +99,8 @@ public class PredictionFactory {
             result.setAverage(sum/list.size());
             result.setHistogram(pickFromHistogram(histogram));
         }else{
+            result.setMax(.0);
+            result.setMin(.0);
             result.setAverage(.0);
             result.setHistogram(.0);
         }
@@ -150,8 +154,7 @@ public class PredictionFactory {
             result.setAverage(sum/list.size());
             result.setHistogram(pickFromHistogramLong(histogram));
         }else{
-            result.setAverage(.0);
-            result.setHistogram(0L);
+            return null;
         }
         return result;
     }

@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.logging.Logger;
 
 /**
  * Created by adrian on 09.12.2015.
@@ -26,6 +27,8 @@ public class CoalitionReasoner {
     public static Map<Long, Job> currentJobs;
     public static Map<String, Prediction<Long>> appDurationMap;
     public static final Double THRESHOLD = 0.01;
+    private static Logger LOG = Logger.getLogger(CoalitionReasoner.class.toString());
+    public static List<Coalition> coalitionCollector = new ArrayList<Coalition>();
 
     public static void initCoalitions(long time) throws Exception {
 
@@ -35,22 +38,30 @@ public class CoalitionReasoner {
 
 
         Map<Long, Coalition> coalitionMap = new TreeMap<Long, Coalition>();
+
         for(Machine m : machinePredictionMap.values()){
             resolute(m, coalitionMap, m.getEstimatedCPULoad().getStartTime());
+        }
 
+        for(Coalition c : coalitionMap.values()){
+            sendCoalition(c);
         }
     }
 
     //TODO Send this coalition up via REST.
     public static void sendCoalition(Coalition c) throws IOException {
+        coalitionCollector.add(c);
+    }
+
+    public static void printCoaliion(Coalition c) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
         System.out.println(objectMapper.writeValueAsString(c));
     }
 
     public static void resolute(Machine machineProperties, Map<Long, Coalition> coalitionMap, long time) throws Exception {
 
-        Machine machine = new Machine();
-        machine.setId(machineProperties.getId());
+
+
         long minSize = Integer.MAX_VALUE;
         Coalition coalition = new Coalition();
 
@@ -62,7 +73,9 @@ public class CoalitionReasoner {
                 continue;
             //System.out.println(jobId + "\t" + machineProperties.getMachineId());
             long size = currentJobs.get(jobId).getTaskSize();
-            if(size < minSize){
+            if(size == 0)
+                size = currentJobs.get(jobId).getTaskHistory().size();
+            if(size != 0 && size < minSize){
                 minSize = size;
             }
             if(coalition.getJobs() == null){
@@ -72,9 +85,10 @@ public class CoalitionReasoner {
             String logJobName = currentJobs.get(jobId).getLogicJobName();
 
             //TODO For now I take the max, discuss alternatives
-            long maxEndTime = currentJobs.get(jobId).getScheduleTime() + appDurationMap.get(logJobName).getMax();
+            if(appDurationMap.containsKey(logJobName)) {
+                long maxEndTime = currentJobs.get(jobId).getScheduleTime() + appDurationMap.get(logJobName).getMax();
 
-            coalition.getJobs().put(logJobName, maxEndTime);
+                coalition.getJobs().put(logJobName, maxEndTime);
 
                 if (minTaskStartTime > appDurationMap.get(logJobName).getMin()) {
                     coalition.setCurrentETA(appDurationMap.get(logJobName));
@@ -84,20 +98,24 @@ public class CoalitionReasoner {
                     coalition.getCurrentETA().setHistogram(coalition.getCurrentETA().getHistogram() + currentJobs.get(jobId).getScheduleTime());
                     minTaskStartTime = appDurationMap.get(logJobName).getMin();
                 }
+            }
+
+
 
 
         }
 
-        if(MachineEventsMapper.MACHINES.containsKey(machine.getId())) {
-            machine.setCpu(MachineEventsMapper.MACHINES.get(machine.getId()).getKey());
-            machine.setMemory(MachineEventsMapper.MACHINES.get(machine.getId()).getValue());
+        if(MachineEventsMapper.MACHINES.containsKey(machineProperties.getId())) {
+            machineProperties.setCpu(MachineEventsMapper.MACHINES.get(machineProperties.getId()).getKey());
+            machineProperties.setMemory(MachineEventsMapper.MACHINES.get(machineProperties.getId()).getValue());
         }
+
 
         //Check availability of machine
-        Double availableCPU = machine.getCpu() - machine.getEstimatedCPULoad().getMax();
-        Double availableMem = machine.getMemory() - machine.getEstimatedMemoryLoad().getMax();
+        Double availableCPU = machineProperties.getCpu() - machineProperties.getEstimatedCPULoad().getMax();
+        Double availableMem = machineProperties.getMemory() - machineProperties.getEstimatedMemoryLoad().getMax();
 
-        if(availableCPU > THRESHOLD * machine.getCpu() && availableMem > THRESHOLD * machine.getMemory()){
+        if(availableCPU > THRESHOLD * machineProperties.getCpu() && availableMem > THRESHOLD * machineProperties.getMemory()){
 
             //set coalition as available from current time
             List<Long> available = new ArrayList<Long>();
@@ -106,9 +124,13 @@ public class CoalitionReasoner {
         }//The else case was treated in the previous 'for loop' to avoid the same computation
 
 
+        //TODO Check if this doesn't create problems
+        machineProperties.setTaskUsageList(null);
+
         if(coalition.getMachines() == null)
             coalition.setMachines(new ArrayList<Machine>());
-        coalition.getMachines().add(machine);
+        coalition.getMachines().add(machineProperties);
+        System.out.printf("Min size: %d\n", minSize);
 
         if (!coalitionMap.containsKey(minSize)){
             coalitionMap.put(minSize, coalition);
@@ -125,7 +147,7 @@ public class CoalitionReasoner {
                         coalition2.setJobs(new TreeMap<String, Long>());
                     if(coalition.getJobs() != null)
                         coalition2.getJobs().putAll(coalition.getJobs());
-                    coalition2.getMachines().add(machine);
+                    coalition2.getMachines().add(machineProperties);
                 }
             }
         }
@@ -157,7 +179,7 @@ public class CoalitionReasoner {
                 String logJobName = currentJobs.get(jobId).getLogicJobName();
 
                 //TODO For now I take the max, discuss alternatives
-                long maxEndTime = currentJobs.get(jobId).getScheduleTime() + appDurationMap.get(logJobName).getMax();
+                long maxEndTime = appDurationMap.get(logJobName).getMax();
 
                 coalition.getJobs().put(logJobName, maxEndTime);
 

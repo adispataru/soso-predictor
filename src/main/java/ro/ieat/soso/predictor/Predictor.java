@@ -11,6 +11,7 @@ import ro.ieat.soso.core.mappers.*;
 import ro.ieat.soso.core.prediction.Prediction;
 import ro.ieat.soso.predictor.prediction.PredictionFactory;
 import ro.ieat.soso.reasoning.CoalitionResolutor;
+import ro.ieat.soso.reasoning.controllers.JobRuntimePredictionController;
 import ro.ieat.soso.reasoning.controllers.MachineUsagePredictionController;
 
 import java.io.File;
@@ -119,9 +120,9 @@ public class Predictor {
 
             for(Usage usage : taskUsage.getUsageList()){
 
-                System.out.printf("%d %d\n", usage.getStartTime(), usage.getEndTime());
-                System.out.printf("%.4f %.4f\n", usage.getCpu(), usage.getMaxCpu());
-                System.out.printf("%.4f %.4f\n", usage.getMemory(), usage.getMaxMemory());
+//                System.out.printf("%d %d\n", usage.getStartTime(), usage.getEndTime());
+//                System.out.printf("%.4f %.4f\n", usage.getCpu(), usage.getMaxCpu());
+//                System.out.printf("%.4f %.4f\n", usage.getMemory(), usage.getMaxMemory());
 
                 usageList.add(usage);
 
@@ -130,9 +131,9 @@ public class Predictor {
 
         System.out.println("--------------------------");
         for(Usage u : usageList){
-            System.out.printf("%d %d\n", u.getStartTime(), u.getEndTime());
-            System.out.printf("%.4f %.4f\n", u.getCpu(), u.getMaxCpu());
-            System.out.printf("%.4f %.4f\n", u.getMemory(), u.getMaxMemory());
+//            System.out.printf("%d %d\n", u.getStartTime(), u.getEndTime());
+//            System.out.printf("%.4f %.4f\n", u.getCpu(), u.getMaxCpu());
+//            System.out.printf("%.4f %.4f\n", u.getMemory(), u.getMaxMemory());
 
         }
 
@@ -144,10 +145,10 @@ public class Predictor {
         memPrediction.setEndTime((historyEnd + Configuration.STEP) * Configuration.TIME_DIVISOR);
         m.setEstimatedCPULoad(cpuPrediction);
         m.setEstimatedMemoryLoad(memPrediction);
-        System.out.printf("%d %d\n", cpuPrediction.getStartTime(), cpuPrediction.getEndTime());
-        System.out.printf("max\tmin\tavg\thist\n");
-        System.out.printf("%.4f, %.4f, %.4f, %.4f\n", cpuPrediction.getMax(), cpuPrediction.getMin(), cpuPrediction.getAverage(), cpuPrediction.getHistogram());
-        System.out.println(m.getCpu());
+//        System.out.printf("%d %d\n", cpuPrediction.getStartTime(), cpuPrediction.getEndTime());
+//        System.out.printf("max\tmin\tavg\thist\n");
+//        System.out.printf("%.4f, %.4f, %.4f, %.4f\n", cpuPrediction.getMax(), cpuPrediction.getMin(), cpuPrediction.getAverage(), cpuPrediction.getHistogram());
+//        System.out.println(m.getCpu());
 
 
         //Eventually this would become a call via REST
@@ -164,14 +165,20 @@ public class Predictor {
         List<Job> jobs = JobReader.getJobsWithLogicJobName(jobsPath, logicJobName, historyStart, historyEnd);
         List<Long> durationList = new ArrayList<Long>();
         for(Job j : jobs){
+            if(j.getFinishTime() == 0 || j.getScheduleTime() == 0 || !"finish".equals(j.getStatus()))
+                continue;
             Long duration = j.getFinishTime() - j.getScheduleTime();
             if(duration > 0)
                 durationList.add(duration);
         }
 
         Prediction<Long> duration = PredictionFactory.predictTime(durationList);
-        System.out.printf("max min avg hist\n");
-        System.out.printf("%d %d %.4f %d\n", duration.getMax(), duration.getMin(), duration.getAverage(), duration.getHistogram());
+        if(duration != null) {
+//            System.out.printf("max min avg hist\n");
+//            System.out.printf("%d %d %.4f %d\n", duration.getMax(), duration.getMin(), duration.getAverage(), duration.getHistogram());
+
+            JobRuntimePredictionController.updateJobDuration(logicJobName, duration);
+        }
         return 0;
     }
 
