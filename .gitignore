@@ -1,0 +1,13 @@
+syntax:glob
+
+target/*
+.project
+.settings
+.classpath
+*.*~
+target
+*.jar
+*.idea
+*.iml
+data/*
+
