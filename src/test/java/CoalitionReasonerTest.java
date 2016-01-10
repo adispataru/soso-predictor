@@ -11,10 +11,11 @@ import ro.ieat.soso.core.mappers.TaskEventsMapper;
 import ro.ieat.soso.core.prediction.DurationPrediction;
 import ro.ieat.soso.predictor.Predictor;
 import ro.ieat.soso.reasoning.CoalitionReasoner;
+import ro.ieat.soso.reasoning.controllers.persistence.CoalitionRepository;
 
 import java.io.File;
 import java.io.FileReader;
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -23,6 +24,7 @@ import static junit.framework.Assert.assertTrue;
 
 /**
  * Created by adrian on 07.01.2016.
+ * Testing initialization and update for coalitioReasoner.
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(App.class)
@@ -61,7 +63,7 @@ public class CoalitionReasonerTest {
         }
 
         CoalitionReasoner.initCoalitions(5400);
-        List<Coalition> cs = CoalitionReasoner.coalitionCollector;
+        Collection<Coalition> cs = CoalitionRepository.coalitionMap.values();
         assertTrue("Coalition size", cs.size() > 0);
         long sum = 0;
         for(Coalition c : cs){
@@ -96,7 +98,7 @@ public class CoalitionReasonerTest {
         }
 
 
-        for(Coalition c : CoalitionReasoner.coalitionCollector){
+        for(Coalition c : CoalitionRepository.coalitionMap.values()){
             long endTime = c.getMachines().get(0).getPrediction().getEndTime();
             assertEquals(0, CoalitionReasoner.update(c, 5700));
             long newEndTime = c.getMachines().get(0).getPrediction().getEndTime();

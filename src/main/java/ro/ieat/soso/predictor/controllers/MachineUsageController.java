@@ -10,8 +10,8 @@ import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.jobs.ScheduledJob;
 import ro.ieat.soso.core.jobs.TaskHistory;
-import ro.ieat.soso.predictor.persistence.FileSplitTimeMap;
 import ro.ieat.soso.predictor.persistence.MachineRepository;
+import ro.ieat.soso.reasoning.CoalitionReasoner;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -22,13 +22,16 @@ import javax.servlet.http.HttpServletRequest;
 @RestController
 public class MachineUsageController {
 
-    @RequestMapping(method = RequestMethod.PUT, path = "/assign/usage", consumes = "application/json")
-    public ResponseEntity<String> assignTaskUsageToMachine(@RequestBody ScheduledJob job, HttpServletRequest request){
+    @RequestMapping(method = RequestMethod.POST, path = "/coalitions/{id}/schedule", consumes = "application/json")
+    public ResponseEntity<ScheduledJob> assignTaskUsageToMachine(@RequestBody ScheduledJob job, HttpServletRequest request){
 
         long jobId = job.getJobId();
-        String jobFile = FileSplitTimeMap.getTaskUsageFile(job.getSubmitTime());
+        String log = MachineRepository.jobRepo.get(jobId).getLogicJobName();
 
         if(MachineRepository.jobRepo.containsKey(jobId)) {
+            if(CoalitionReasoner.appDurationMap.containsKey(log)){
+                job.setFinishTime(job.getSubmitTime() + CoalitionReasoner.appDurationMap.get(log).getMax());
+            }
             for(TaskHistory taskHistory : MachineRepository.jobRepo.get(jobId).getTaskHistory()){
                 long taskId = taskHistory.getTaskIndex();
                 long machineId = job.getTaskMachineMapping().get(taskId);
@@ -40,10 +43,11 @@ public class MachineUsageController {
                 }
             }
             MachineRepository.assignedJobs.add(job.getJobId());
-            return new ResponseEntity<String>("ok", HttpStatus.OK);
+            return new ResponseEntity<ScheduledJob>(job, HttpStatus.OK);
         } else{
-            return new ResponseEntity<String>("Job not found: " + jobId, HttpStatus.NOT_FOUND);
+            return new ResponseEntity<ScheduledJob>(job, HttpStatus.NOT_FOUND);
         }
+
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "assign/usage")

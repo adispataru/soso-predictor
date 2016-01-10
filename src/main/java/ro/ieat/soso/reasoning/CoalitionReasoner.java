@@ -9,6 +9,7 @@ import ro.ieat.soso.core.jobs.TaskUsage;
 import ro.ieat.soso.core.mappers.MachineEventsMapper;
 import ro.ieat.soso.core.prediction.DurationPrediction;
 import ro.ieat.soso.predictor.prediction.PredictionFactory;
+import ro.ieat.soso.reasoning.controllers.persistence.CoalitionRepository;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -29,7 +30,6 @@ public class CoalitionReasoner {
     public static Map<String, DurationPrediction> appDurationMap;
     public static final Double THRESHOLD = 0.01;
     private static Logger LOG = Logger.getLogger(CoalitionReasoner.class.toString());
-    public static List<Coalition> coalitionCollector = new ArrayList<Coalition>();
     public static long c_id = 1;
 
     public static void initCoalitions(long time) throws Exception {
@@ -56,7 +56,7 @@ public class CoalitionReasoner {
         if (c.getCurrentETA() == null)
             c.setCurrentETA(PredictionFactory.maxLongDurationPrediction());
 
-        coalitionCollector.add(c);
+        CoalitionRepository.coalitionMap.put(c.getId(), c);
     }
 
     public static void printCoaliion(Coalition c) throws IOException {
@@ -222,11 +222,6 @@ public class CoalitionReasoner {
                 coalition.setCurrentETA(PredictionFactory.predictTime(available));
             }//The else case was treated in the previous 'for loop' to avoid the same computation
         }
-
-        //TODO: Treat scheduled jobs
-//        if(coalition.getScheduledJobs() != null){
-//
-//        }
 
 
 
