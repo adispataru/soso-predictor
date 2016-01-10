@@ -13,12 +13,13 @@ import ro.ieat.soso.core.prediction.DurationPrediction;
 import ro.ieat.soso.predictor.Predictor;
 import ro.ieat.soso.predictor.persistence.MachineRepository;
 import ro.ieat.soso.reasoning.CoalitionReasoner;
+import ro.ieat.soso.reasoning.controllers.persistence.CoalitionRepository;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
@@ -126,7 +127,7 @@ public class App {
         }
 
         CoalitionReasoner.initCoalitions(5400);
-        List<Coalition> cs = CoalitionReasoner.coalitionCollector;
+        Collection<Coalition> cs = CoalitionRepository.coalitionMap.values();
 
         String coalitionOutputFolder = "./data/coalitions/";
 
@@ -136,7 +137,7 @@ public class App {
             File dir = new File(coalitionOutputFolder);
             if(!dir.exists())
                 dir.mkdirs();
-            //TODO add features to coalitions
+
 
             FileWriter f = new FileWriter(coalitionOutputFolder + coalition.getId());
             f.write(objectMapper.writeValueAsString(coalition));

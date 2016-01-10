@@ -90,8 +90,6 @@ public class CoalitionReasoner {
 
             String logJobName = currentJobs.get(jobId).getLogicJobName();
 
-            //TODO For now I take the max, discuss alternatives
-            //TODO Fix: This block may create null currentETA. Avoid this to happen.
             if(appDurationMap.containsKey(logJobName)) {
                 long maxEndTime = currentJobs.get(jobId).getScheduleTime() + appDurationMap.get(logJobName).getMax();
 
@@ -130,8 +128,6 @@ public class CoalitionReasoner {
             coalition.setCurrentETA(PredictionFactory.predictTime(available));
         }//The else case was treated in the previous 'for loop' to avoid the same computation
 
-
-        //TODO Check if this doesn't create problems
         machineProperties.setTaskUsageList(null);
 
         if(coalition.getMachines() == null)
@@ -186,8 +182,6 @@ public class CoalitionReasoner {
 
                 String logJobName = currentJobs.get(jobId).getLogicJobName();
 
-                //TODO For now I take the max, discuss alternatives
-                //TODO For now I take the max, discuss alternatives
                 if(appDurationMap.containsKey(logJobName)) {
                     long maxEndTime = currentJobs.get(jobId).getScheduleTime() + appDurationMap.get(logJobName).getMax();
 
