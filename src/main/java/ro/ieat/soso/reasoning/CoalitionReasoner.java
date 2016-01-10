@@ -20,6 +20,7 @@ import java.util.logging.Logger;
 
 /**
  * Created by adrian on 09.12.2015.
+ * CoalitionReasoner is the name of the main component responsible for creation and future management of coalitions
  */
 public class CoalitionReasoner {
 
@@ -50,10 +51,11 @@ public class CoalitionReasoner {
         }
     }
 
-    //TODO Send this coalition up via REST.
+
     public static void sendCoalition(Coalition c) throws IOException {
         if (c.getCurrentETA() == null)
             c.setCurrentETA(PredictionFactory.maxLongDurationPrediction());
+
         coalitionCollector.add(c);
     }
 
@@ -221,9 +223,10 @@ public class CoalitionReasoner {
             }//The else case was treated in the previous 'for loop' to avoid the same computation
         }
 
-        if(coalition.getScheduledJobs() != null){
-            //TODO Treat scheduled events.
-        }
+        //TODO: Treat scheduled jobs
+//        if(coalition.getScheduledJobs() != null){
+//
+//        }
 
 
 
