@@ -22,16 +22,20 @@
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
             <version>${springVersion}</version>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <version>${springVersion}</version>
         </dependency>
+
+
 
     </dependencies>
 
@@ -40,6 +44,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${springVersion}</version>
             </plugin>
         </plugins>
     </build>

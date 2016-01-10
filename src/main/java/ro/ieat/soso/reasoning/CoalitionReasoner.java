@@ -7,7 +7,7 @@ import ro.ieat.soso.core.config.Configuration;
 import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.jobs.TaskUsage;
 import ro.ieat.soso.core.mappers.MachineEventsMapper;
-import ro.ieat.soso.core.prediction.Prediction;
+import ro.ieat.soso.core.prediction.DurationPrediction;
 import ro.ieat.soso.predictor.prediction.PredictionFactory;
 
 import java.io.FileReader;
@@ -25,10 +25,11 @@ public class CoalitionReasoner {
 
     public static Map<Long, Machine> machinePredictionMap;
     public static Map<Long, Job> currentJobs;
-    public static Map<String, Prediction<Long>> appDurationMap;
+    public static Map<String, DurationPrediction> appDurationMap;
     public static final Double THRESHOLD = 0.01;
     private static Logger LOG = Logger.getLogger(CoalitionReasoner.class.toString());
     public static List<Coalition> coalitionCollector = new ArrayList<Coalition>();
+    public static long c_id = 1;
 
     public static void initCoalitions(long time) throws Exception {
 
@@ -40,16 +41,19 @@ public class CoalitionReasoner {
         Map<Long, Coalition> coalitionMap = new TreeMap<Long, Coalition>();
 
         for(Machine m : machinePredictionMap.values()){
-            resolute(m, coalitionMap, m.getEstimatedCPULoad().getStartTime());
+            update(m, coalitionMap, m.getPrediction().getStartTime());
         }
 
         for(Coalition c : coalitionMap.values()){
+            c.setId(c_id++);
             sendCoalition(c);
         }
     }
 
     //TODO Send this coalition up via REST.
     public static void sendCoalition(Coalition c) throws IOException {
+        if (c.getCurrentETA() == null)
+            c.setCurrentETA(PredictionFactory.maxLongDurationPrediction());
         coalitionCollector.add(c);
     }
 
@@ -58,7 +62,7 @@ public class CoalitionReasoner {
         System.out.println(objectMapper.writeValueAsString(c));
     }
 
-    public static void resolute(Machine machineProperties, Map<Long, Coalition> coalitionMap, long time) throws Exception {
+    public static void update(Machine machineProperties, Map<Long, Coalition> coalitionMap, long time) throws Exception {
 
 
 
@@ -66,7 +70,7 @@ public class CoalitionReasoner {
         Coalition coalition = new Coalition();
 
         //next lines are commented because I already took care of this during prediction of job times.
-        long minTaskStartTime = Long.MAX_VALUE;
+        long minJobRunTime = Long.MAX_VALUE;
         for(TaskUsage taskUsage : machineProperties.getTaskUsageList()){
             Long jobId = taskUsage.getJobId();
             if(!currentJobs.containsKey(jobId))
@@ -85,18 +89,19 @@ public class CoalitionReasoner {
             String logJobName = currentJobs.get(jobId).getLogicJobName();
 
             //TODO For now I take the max, discuss alternatives
+            //TODO Fix: This block may create null currentETA. Avoid this to happen.
             if(appDurationMap.containsKey(logJobName)) {
                 long maxEndTime = currentJobs.get(jobId).getScheduleTime() + appDurationMap.get(logJobName).getMax();
 
                 coalition.getJobs().put(logJobName, maxEndTime);
 
-                if (minTaskStartTime > appDurationMap.get(logJobName).getMin()) {
+                if (minJobRunTime > appDurationMap.get(logJobName).getMin()) {
                     coalition.setCurrentETA(appDurationMap.get(logJobName));
                     coalition.getCurrentETA().setMax(coalition.getCurrentETA().getMax() + currentJobs.get(jobId).getScheduleTime());
                     coalition.getCurrentETA().setMin(coalition.getCurrentETA().getMin() + currentJobs.get(jobId).getScheduleTime());
                     coalition.getCurrentETA().setAverage(coalition.getCurrentETA().getAverage() + currentJobs.get(jobId).getScheduleTime());
                     coalition.getCurrentETA().setHistogram(coalition.getCurrentETA().getHistogram() + currentJobs.get(jobId).getScheduleTime());
-                    minTaskStartTime = appDurationMap.get(logJobName).getMin();
+                    minJobRunTime = appDurationMap.get(logJobName).getMin();
                 }
             }
 
@@ -112,8 +117,8 @@ public class CoalitionReasoner {
 
 
         //Check availability of machine
-        Double availableCPU = machineProperties.getCpu() - machineProperties.getEstimatedCPULoad().getMax();
-        Double availableMem = machineProperties.getMemory() - machineProperties.getEstimatedMemoryLoad().getMax();
+        Double availableCPU = machineProperties.getCpu() - machineProperties.getPrediction().getMaxCPU();
+        Double availableMem = machineProperties.getMemory() - machineProperties.getPrediction().getMaxMemory();
 
         if(availableCPU > THRESHOLD * machineProperties.getCpu() && availableMem > THRESHOLD * machineProperties.getMemory()){
 
@@ -130,7 +135,6 @@ public class CoalitionReasoner {
         if(coalition.getMachines() == null)
             coalition.setMachines(new ArrayList<Machine>());
         coalition.getMachines().add(machineProperties);
-        System.out.printf("Min size: %d\n", minSize);
 
         if (!coalitionMap.containsKey(minSize)){
             coalitionMap.put(minSize, coalition);
@@ -140,7 +144,9 @@ public class CoalitionReasoner {
             if(coalitionMap.containsKey(minSize)) {
                 Coalition coalition2 = coalitionMap.get(minSize);
                 if (coalition2.getMachines().size() == minSize) {
+                    coalition2.setId(c_id++);
                     sendCoalition(coalition2);
+
                     coalitionMap.put(minSize, coalition);
                 }else{
                     if(coalition2.getJobs() == null)
@@ -156,7 +162,7 @@ public class CoalitionReasoner {
 
 
 
-    public static void resolute(Coalition coalition, long time) throws Exception {
+    public static int update(Coalition coalition, long time) throws Exception {
 
         for(Machine m : coalition.getMachines()){
             Machine mp = machinePredictionMap.get(m.getId());
@@ -179,27 +185,32 @@ public class CoalitionReasoner {
                 String logJobName = currentJobs.get(jobId).getLogicJobName();
 
                 //TODO For now I take the max, discuss alternatives
-                long maxEndTime = appDurationMap.get(logJobName).getMax();
+                //TODO For now I take the max, discuss alternatives
+                if(appDurationMap.containsKey(logJobName)) {
+                    long maxEndTime = currentJobs.get(jobId).getScheduleTime() + appDurationMap.get(logJobName).getMax();
 
-                coalition.getJobs().put(logJobName, maxEndTime);
+                    coalition.getJobs().put(logJobName, maxEndTime);
 
-                if (minTaskStartTime > appDurationMap.get(logJobName).getMin()) {
-                    coalition.setCurrentETA(appDurationMap.get(logJobName));
-                    coalition.getCurrentETA().setMax(coalition.getCurrentETA().getMax() + currentJobs.get(jobId).getScheduleTime());
-                    coalition.getCurrentETA().setMin(coalition.getCurrentETA().getMin() + currentJobs.get(jobId).getScheduleTime());
-                    coalition.getCurrentETA().setAverage(coalition.getCurrentETA().getAverage() + currentJobs.get(jobId).getScheduleTime());
-                    coalition.getCurrentETA().setHistogram(coalition.getCurrentETA().getHistogram() + currentJobs.get(jobId).getScheduleTime());
-                    minTaskStartTime = appDurationMap.get(logJobName).getMin();
+                    if (minTaskStartTime > appDurationMap.get(logJobName).getMin()) {
+                        coalition.setCurrentETA(appDurationMap.get(logJobName));
+                        coalition.getCurrentETA().setMax(coalition.getCurrentETA().getMax() + currentJobs.get(jobId).getScheduleTime());
+                        coalition.getCurrentETA().setMin(coalition.getCurrentETA().getMin() + currentJobs.get(jobId).getScheduleTime());
+                        coalition.getCurrentETA().setAverage(coalition.getCurrentETA().getAverage() + currentJobs.get(jobId).getScheduleTime());
+                        coalition.getCurrentETA().setHistogram(coalition.getCurrentETA().getHistogram() + currentJobs.get(jobId).getScheduleTime());
+                        minTaskStartTime = appDurationMap.get(logJobName).getMin();
+                    }
                 }
 
 
+
+
             }
-            m.setEstimatedCPULoad(mp.getEstimatedCPULoad());
-            m.setEstimatedMemoryLoad(mp.getEstimatedMemoryLoad());
+            System.out.printf("ECPU-EndTime: %d", mp.getPrediction().getEndTime());
+            m.setPrediction(mp.getPrediction());
 
             //Check availability of machine
-            Double availableCPU = m.getCpu() - m.getEstimatedCPULoad().getMax();
-            Double availableMem = m.getMemory() - m.getEstimatedMemoryLoad().getMax();
+            Double availableCPU = m.getCpu() - m.getPrediction().getMaxCPU();
+            Double availableMem = m.getMemory() - m.getPrediction().getMaxMemory();
 
             if(availableCPU > THRESHOLD * m.getCpu() && availableMem > THRESHOLD * m.getMemory()){
 
@@ -216,6 +227,7 @@ public class CoalitionReasoner {
 
 
 
-        sendCoalition(coalition);
+        //sendCoalition(coalition);
+        return 0;
     }
 }

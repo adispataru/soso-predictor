@@ -1,7 +1,8 @@
 package ro.ieat.soso.predictor.prediction;
 
 import ro.ieat.soso.core.coalitions.Usage;
-import ro.ieat.soso.core.prediction.Prediction;
+import ro.ieat.soso.core.prediction.DurationPrediction;
+import ro.ieat.soso.core.prediction.MachinePrediction;
 
 import java.util.List;
 import java.util.Map;
@@ -45,97 +46,71 @@ public class PredictionFactory {
         return 0L;
     }
 
-    public static Prediction<Double> predictCPU(List<Usage> list){
-        Prediction<Double> result = new Prediction<Double>(Double.MIN_VALUE, Double.MAX_VALUE, .0, .0);
-        double sum = 0;
+
+    public static MachinePrediction predictMachineUsage(List<Usage> list){
+        MachinePrediction result = new MachinePrediction();
+        result.setAverageCPU(.0);
+        result.setAverageMemory(.0);
+        result.setMinCPU(Double.MAX_VALUE);
+        result.setMinMemory(Double.MAX_VALUE);
+        result.setMaxCPU(.0);
+        result.setMaxMemory(.0);
+        result.setHistogramCPU(.0);
+        result.setHistogramMemory(.0);
+        double sum = 0, sum2 = 0;
         Map<Double, Long> histogram = new TreeMap<Double, Long>();
+        Map<Double, Long> histogram2 = new TreeMap<Double, Long>();
         for(Usage usage : list){
             //or max cpu?
             Double max = usage.getMaxCpu();
             Double avg = usage.getCpu();
-            if(max > result.getMax()){
-                result.setMax(max);
+            if(max > result.getMaxCPU()){
+                result.setMaxCPU(max);
             }
-            if(avg < result.getMin())
-                result.setMin(avg);
+            if(avg < result.getMinCPU())
+                result.setMinCPU(avg);
             sum += avg;
             if (histogram.containsKey(avg))
                 histogram.put(avg, histogram.get(avg) + 1);
             else
                 histogram.put(avg, 1L);
-        }
-        if(list.size() > 0){
-            result.setAverage(sum/list.size());
-            result.setHistogram(pickFromHistogram(histogram));
-        }else{
-            result.setMax(.0);
-            result.setMin(.0);
-            result.setAverage(.0);
-            result.setHistogram(.0);
-        }
-        return result;
-    }
 
-    public static Prediction<Double> predictMemory(List<Usage> list){
-        Prediction<Double> result = new Prediction<Double>(Double.MIN_VALUE, Double.MAX_VALUE, .0, .0);
-        double sum = 0;
-        Map<Double, Long> histogram = new TreeMap<Double, Long>();
-        for(Usage usage : list){
-            //or max memory?
-            Double max = usage.getMaxMemory();
-            Double avg = usage.getMemory();
-            if(max > result.getMax()){
-                result.setMax(max);
+            max = usage.getMaxMemory();
+            avg = usage.getMemory();
+            if(max > result.getMaxMemory()){
+                result.setMaxMemory(max);
             }
-            if(avg < result.getMin())
-                result.setMin(avg);
-            sum += avg;
+            if(avg < result.getMinMemory())
+                result.setMinMemory(avg);
+            sum2 += avg;
             if (histogram.containsKey(avg))
-                histogram.put(avg, histogram.get(avg) + 1);
+                histogram2.put(avg, histogram.get(avg) + 1);
             else
-                histogram.put(avg, 1L);
+                histogram2.put(avg, 1L);
         }
         if(list.size() > 0){
-            result.setAverage(sum/list.size());
-            result.setHistogram(pickFromHistogram(histogram));
+            result.setAverageCPU(sum/list.size());
+            result.setAverageMemory(sum2/list.size());
+            result.setHistogramCPU(pickFromHistogram(histogram));
+            result.setHistogramMemory(pickFromHistogram(histogram2));
         }else{
-            result.setMax(.0);
-            result.setMin(.0);
-            result.setAverage(.0);
-            result.setHistogram(.0);
-        }
-        return result;
-    }
-
-    public static Prediction<Double> predictDisk(List<Usage> list){
-        Prediction<Double> result = new Prediction<Double>(Double.MIN_VALUE, Double.MAX_VALUE, .0, .0);
-        double sum = 0;
-        Map<Double, Long> histogram = new TreeMap<Double, Long>();
-        for(Usage usage : list){
-            Double max = usage.getMaxDisk();
-            Double avg = usage.getDisk();
-            if(max > result.getMax()){
-                result.setMax(max);
-            }
-            if(max < result.getMin())
-                result.setMin(max);
-            sum += avg;
-            if (histogram.containsKey(avg))
-                histogram.put(avg, histogram.get(avg) + 1);
-        }
-        if(list.size() > 0){
-            result.setAverage(sum/list.size());
-            result.setHistogram(pickFromHistogram(histogram));
-        }else{
-            result.setAverage(.0);
-            result.setHistogram(.0);
+            result.setMaxCPU(.0);
+            result.setMaxMemory(.0);
+            result.setMinCPU(.0);
+            result.setMinMemory(.0);
         }
         return result;
     }
 
 
-    public static Prediction<Long> predictTime(List<Long> list){
-        Prediction<Long> result = new Prediction<Long>(Long.MIN_VALUE, Long.MAX_VALUE, .0, 0L);
+
+
+    public static DurationPrediction predictTime(List<Long> list){
+        DurationPrediction result = new DurationPrediction();
+        result.setMax(Long.MIN_VALUE);
+        result.setMin(Long.MAX_VALUE);
+        result.setAverage(.0);
+        result.setHistogram(0L);
         double sum = 0;
         Map<Long, Long> histogram = new TreeMap<Long, Long>();
         for(Long t : list){
@@ -159,27 +134,13 @@ public class PredictionFactory {
         return result;
     }
 
-    public static Prediction<Double> predictDouble(List<Double> list){
-        Prediction<Double> result = new Prediction<Double>(Double.MIN_VALUE, Double.MAX_VALUE, .0, .0);
-        double sum = 0;
-        Map<Double, Long> histogram = new TreeMap<Double, Long>();
-        for(Double t : list){
-            if(t > result.getMax()){
-                result.setMax(t);
-            }
-            if(t < result.getMin())
-                result.setMin(t);
-            sum += t;
-            if (histogram.containsKey(t))
-                histogram.put(t, histogram.get(t) + 1);
-        }
-        if(list.size() > 0){
-            result.setAverage(sum/list.size());
-            result.setHistogram(pickFromHistogram(histogram));
-        }else{
-            result.setAverage(.0);
-            result.setHistogram(.0);
-        }
-        return result;
+    public static DurationPrediction maxLongDurationPrediction(){
+        DurationPrediction d = new DurationPrediction();
+        d.setHistogram(Long.MAX_VALUE);
+        d.setAverage(Double.MAX_VALUE);
+        d.setMax(Long.MAX_VALUE);
+        d.setMin(Long.MAX_VALUE);
+        return d;
     }
+
 }

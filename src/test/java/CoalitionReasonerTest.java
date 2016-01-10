@@ -8,7 +8,7 @@ import ro.ieat.soso.core.config.Configuration;
 import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.mappers.JobEventsMapper;
 import ro.ieat.soso.core.mappers.TaskEventsMapper;
-import ro.ieat.soso.core.prediction.Prediction;
+import ro.ieat.soso.core.prediction.DurationPrediction;
 import ro.ieat.soso.predictor.Predictor;
 import ro.ieat.soso.reasoning.CoalitionReasoner;
 
@@ -34,9 +34,10 @@ public class CoalitionReasonerTest {
 
         int i = 0;
         int numMachines = 10;
-        for(File f : new File(machineUsagePath).listFiles()){
+        File[] machineFiles = new File(machineUsagePath).listFiles();
+        for(File f : machineFiles){
 
-            Predictor.predictMachineUsage(Long.parseLong(f.getName()), 600, 5400);
+            assertEquals(0, Predictor.predictMachineUsage(Long.parseLong(f.getName()), 600, 5400));
 
 
             if(++i >= numMachines)
@@ -52,11 +53,11 @@ public class CoalitionReasonerTest {
         }
 
         CoalitionReasoner.currentJobs = jobMap;
-        CoalitionReasoner.appDurationMap = new TreeMap<String, Prediction<Long>>();
+        CoalitionReasoner.appDurationMap = new TreeMap<String, DurationPrediction>();
         for(Job j : jobMap.values()){
 //            if(CoalitionReasoner.appDurationMap.containsKey(j.getLogicJobName()))
 //                continue;
-            Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
+            assertEquals(0, Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400));
         }
 
         CoalitionReasoner.initCoalitions(5400);
@@ -67,6 +68,41 @@ public class CoalitionReasonerTest {
             sum += c.getMachines().size();
         }
         assertEquals(numMachines, sum);
+
+        //Test coalition update
+
+        i = 0;
+        for(File f : machineFiles){
+
+            assertEquals(0, Predictor.predictMachineUsage(Long.parseLong(f.getName()), 900, 5700));
+
+
+            if(++i >= numMachines)
+                break;
+        }
+        for(File f : new File(Configuration.JOB_EVENTS_PATH).listFiles()) {
+            JobEventsMapper.map(new FileReader(f), jobMap, 5400, 5700);
+        }
+        for(File f : new File(Configuration.TASK_EVENTS_PATH).listFiles()) {
+            TaskEventsMapper.map(new FileReader(f), jobMap, 5400, 5700);
+        }
+
+        CoalitionReasoner.currentJobs = jobMap;
+        CoalitionReasoner.appDurationMap = new TreeMap<String, DurationPrediction>();
+        for(Job j : jobMap.values()){
+//            if(CoalitionReasoner.appDurationMap.containsKey(j.getLogicJobName()))
+//                continue;
+           assertEquals(0, Predictor.predictJobRuntime(j.getLogicJobName(), 5400, 5700));
+        }
+
+
+        for(Coalition c : CoalitionReasoner.coalitionCollector){
+            long endTime = c.getMachines().get(0).getPrediction().getEndTime();
+            assertEquals(0, CoalitionReasoner.update(c, 5700));
+            long newEndTime = c.getMachines().get(0).getPrediction().getEndTime();
+            assertEquals(endTime + Configuration.STEP * Configuration.TIME_DIVISOR, newEndTime);
+        }
+
 
 
 
