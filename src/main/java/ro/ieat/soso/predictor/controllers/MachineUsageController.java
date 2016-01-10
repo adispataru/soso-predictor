@@ -2,20 +2,76 @@ package ro.ieat.soso.predictor.controllers;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+import ro.ieat.soso.core.coalitions.Machine;
+import ro.ieat.soso.core.jobs.Job;
+import ro.ieat.soso.core.jobs.ScheduledJob;
+import ro.ieat.soso.core.jobs.TaskHistory;
+import ro.ieat.soso.predictor.persistence.FileSplitTimeMap;
+import ro.ieat.soso.predictor.persistence.MachineRepository;
 
 import javax.servlet.http.HttpServletRequest;
 
 /**
  * Created by adrian on 07.01.2016.
+ * Used to assign task usage to machines.
  */
 @RestController
 public class MachineUsageController {
 
-    @RequestMapping(method = RequestMethod.POST, path = "/machines/{id}/tasks", consumes = "text/plain")
-    public ResponseEntity<Object> assignTaskUsageToMachine(@PathVariable("id") String id, @RequestBody String o, HttpServletRequest request){
-        System.out.printf("Received: %s %s\n", id, o);
+    @RequestMapping(method = RequestMethod.PUT, path = "/assign/usage", consumes = "application/json")
+    public ResponseEntity<String> assignTaskUsageToMachine(@RequestBody ScheduledJob job, HttpServletRequest request){
 
-        return new ResponseEntity<Object>(o, HttpStatus.OK);
+        long jobId = job.getJobId();
+        String jobFile = FileSplitTimeMap.getTaskUsageFile(job.getSubmitTime());
+
+        if(MachineRepository.jobRepo.containsKey(jobId)) {
+            for(TaskHistory taskHistory : MachineRepository.jobRepo.get(jobId).getTaskHistory()){
+                long taskId = taskHistory.getTaskIndex();
+                long machineId = job.getTaskMachineMapping().get(taskId);
+                Machine m = MachineRepository.findOne(machineId);
+                if(m != null)
+                    m.getTaskUsageList().add(taskHistory.getTaskUsage());
+                else{
+                    System.out.printf("Machine not found!: %d", machineId);
+                }
+            }
+            MachineRepository.assignedJobs.add(job.getJobId());
+            return new ResponseEntity<String>("ok", HttpStatus.OK);
+        } else{
+            return new ResponseEntity<String>("Job not found: " + jobId, HttpStatus.NOT_FOUND);
+        }
     }
+
+    @RequestMapping(method = RequestMethod.POST, path = "assign/usage")
+    public ResponseEntity<String> assignRestOfJobs(){
+
+        for(Job j : MachineRepository.jobRepo.values()){
+            if(MachineRepository.assignedJobs.contains(j.getJobId()))
+                continue;
+
+            for(TaskHistory taskHistory : j.getTaskHistory()){
+                long taskId = taskHistory.getTaskIndex();
+                long machineId = taskHistory.getMachineId();
+                Machine m = MachineRepository.findOne(machineId);
+                if(m != null)
+                    m.getTaskUsageList().add(taskHistory.getTaskUsage());
+                else{
+                    System.out.printf("Machine not found!: %d", machineId);
+                }
+            }
+            MachineRepository.assignedJobs.add(j.getJobId());
+
+        }
+
+
+        return new ResponseEntity<String>("ok", HttpStatus.OK);
+
+
+    }
+
+
 }
