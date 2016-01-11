@@ -2,10 +2,7 @@ package ro.ieat.soso.predictor.controllers;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.jobs.ScheduledJob;
@@ -32,7 +29,7 @@ public class MachineUsageController {
             if(CoalitionReasoner.appDurationMap.containsKey(log)){
                 job.setFinishTime(job.getSubmitTime() + CoalitionReasoner.appDurationMap.get(log).getMax());
             }
-            for(TaskHistory taskHistory : MachineRepository.jobRepo.get(jobId).getTaskHistory()){
+            for(TaskHistory taskHistory : MachineRepository.jobRepo.get(jobId).getTaskHistory().values()){
                 long taskId = taskHistory.getTaskIndex();
                 long machineId = job.getTaskMachineMapping().get(taskId);
                 Machine m = MachineRepository.findOne(machineId);
@@ -57,7 +54,7 @@ public class MachineUsageController {
             if(MachineRepository.assignedJobs.contains(j.getJobId()))
                 continue;
 
-            for(TaskHistory taskHistory : j.getTaskHistory()){
+            for(TaskHistory taskHistory : j.getTaskHistory().values()){
                 long taskId = taskHistory.getTaskIndex();
                 long machineId = taskHistory.getMachineId();
                 Machine m = MachineRepository.findOne(machineId);
@@ -75,6 +72,27 @@ public class MachineUsageController {
         return new ResponseEntity<String>("ok", HttpStatus.OK);
 
 
+    }
+
+    @RequestMapping(method =  RequestMethod.POST, path = "assign/normalJob/{id}")
+    public ResponseEntity<String> assignJob(@PathVariable("id") long id){
+        Job j = MachineRepository.jobRepo.get(id);
+        if(MachineRepository.assignedJobs.contains(j.getJobId()))
+            return new ResponseEntity<String>("ok", HttpStatus.NO_CONTENT);;
+
+        for(TaskHistory taskHistory : j.getTaskHistory().values()){
+            long taskId = taskHistory.getTaskIndex();
+            long machineId = taskHistory.getMachineId();
+            Machine m = MachineRepository.findOne(machineId);
+            if(m != null)
+                m.getTaskUsageList().add(taskHistory.getTaskUsage());
+            else{
+                System.out.printf("Machine not found!: %d", machineId);
+            }
+        }
+        MachineRepository.assignedJobs.add(j.getJobId());
+
+        return new ResponseEntity<String>("ok", HttpStatus.OK);
     }
 
 

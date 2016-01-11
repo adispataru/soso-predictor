@@ -3,6 +3,7 @@ package ro.ieat.soso.predictor.persistence;
 import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.jobs.Job;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -17,6 +18,10 @@ public class MachineRepository{
 
     public static Machine findOne(Long machineId){
         return machineRepository.get(machineId);
+    }
+
+    public static Collection<Machine> findAll(){
+        return machineRepository.values();
     }
 
     public static void save(Machine m){

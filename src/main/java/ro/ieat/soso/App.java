@@ -4,22 +4,27 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import ro.ieat.soso.core.coalitions.Coalition;
+import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.config.Configuration;
 import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.mappers.JobEventsMapper;
+import ro.ieat.soso.core.mappers.MachineUsageMapper;
 import ro.ieat.soso.core.mappers.TaskEventsMapper;
 import ro.ieat.soso.core.mappers.TaskUsageMapper;
 import ro.ieat.soso.core.prediction.DurationPrediction;
 import ro.ieat.soso.predictor.Predictor;
 import ro.ieat.soso.predictor.persistence.MachineRepository;
 import ro.ieat.soso.reasoning.CoalitionReasoner;
+import ro.ieat.soso.reasoning.controllers.CoalitionClient;
 import ro.ieat.soso.reasoning.controllers.persistence.CoalitionRepository;
+import ro.ieat.soso.util.MapsUtil;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
@@ -42,9 +47,10 @@ public class App {
 //        }
         //initializeCoalitions();
 
-        configure(600, 6000);
+        //configure(600, 6000);
 
         SpringApplication.run(App.class, args);
+        runIndefinetely();
 
 
     }
@@ -143,6 +149,101 @@ public class App {
             f.write(objectMapper.writeValueAsString(coalition));
             f.close();
         }
+
+    }
+
+    public static void runIndefinetely() throws Exception {
+
+        long initStart = 0, initEnd = 5700;
+        Long maxTime = Long.MAX_VALUE / Configuration.TIME_DIVISOR;
+        Map<Long, Job> jobMap = new TreeMap<Long, Job>();
+
+        long time = System.currentTimeMillis();
+
+        for(File f : new File(Configuration.JOB_EVENTS_PATH).listFiles()) {
+            JobEventsMapper.map(new FileReader(f), jobMap, initStart, initEnd);
+        }
+
+        LOG.info("Finished job events mapping");
+        for(File f : new File(Configuration.TASK_EVENTS_PATH).listFiles()) {
+            TaskEventsMapper.map(new FileReader(f), jobMap, initStart, initEnd);
+        }
+
+        LOG.info("Finished task events mapping");
+
+        LOG.info("Starting task usage mapping");
+        File dir = new File(Configuration.TASK_USAGE_PATH);
+        if(dir.isDirectory()){
+            int i = 1;
+            for(File f : dir.listFiles()){
+                TaskUsageMapper.map(new FileReader(f), jobMap, 600, initEnd);
+                LOG.info("Processed " + i + " of " + dir.listFiles().length + " files...");
+                ++i;
+            }
+        }else{
+            TaskUsageMapper.map(new FileReader(Configuration.TASK_USAGE_PATH), jobMap, initStart, initEnd);
+        }
+        LOG.info("Done.");
+
+        long time2 = System.currentTimeMillis();
+        LOG.info("Reading duration: " + (time2 - time));
+
+        String machineUsagePath = "./data/output/machine_usage/";
+
+        File[] machineFiles = new File(machineUsagePath).listFiles();
+
+        LOG.info("Reading and predicting machine usage from files...");
+
+        for(File f : machineFiles){
+            Machine m = MachineUsageMapper.readOne(f, initStart, initEnd);
+            MachineRepository.save(m);
+            Predictor.predictMachineUsage(Long.parseLong(f.getName()), initStart, initEnd);
+        }
+
+        LOG.info("Done.");
+
+
+        CoalitionReasoner.currentJobs = jobMap;
+        CoalitionReasoner.appDurationMap = new TreeMap<String, DurationPrediction>();
+
+        LOG.info("Prediciting job durations.");
+        for(Job j : jobMap.values()){
+//            if(CoalitionReasoner.appDurationMap.containsKey(j.getLogicJobName()))
+//                continue;
+            Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
+        }
+        LOG.info("Done.");
+
+        LOG.info("Initializing coalitions...");
+        CoalitionReasoner.initCoalitions(5400);
+
+        LOG.info("Done.");
+
+
+        jobMap = MapsUtil.sortJobMaponSubmitTime(jobMap);
+
+        Iterator<Map.Entry<Long, Job>> iterator = jobMap.entrySet().iterator();
+        if(MachineRepository.jobRepo == null)
+            MachineRepository.jobRepo = new TreeMap<Long, Job>();
+        while (iterator.hasNext()){
+            Job j = iterator.next().getValue();
+            MachineRepository.jobRepo.put(j.getJobId(), j);
+            Predictor.predictJobRuntime(j.getLogicJobName(), initStart, initEnd-300);
+            if(j.getSubmitTime() >= (initEnd-300) * Configuration.TIME_DIVISOR){
+                CoalitionClient.sendJobRequest(new Job(j));
+                break;
+            }
+
+        }
+
+
+
+        while (iterator.hasNext()){
+            Job j = iterator.next().getValue();
+            CoalitionClient.sendJobRequest(new Job(j));
+            //TODO Add Job usage, figure out rest of flow.
+        }
+
 
     }
 }

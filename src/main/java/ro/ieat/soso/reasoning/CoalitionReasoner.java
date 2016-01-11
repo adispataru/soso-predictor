@@ -8,7 +8,9 @@ import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.jobs.TaskUsage;
 import ro.ieat.soso.core.mappers.MachineEventsMapper;
 import ro.ieat.soso.core.prediction.DurationPrediction;
+import ro.ieat.soso.predictor.persistence.MachineRepository;
 import ro.ieat.soso.predictor.prediction.PredictionFactory;
+import ro.ieat.soso.reasoning.controllers.CoalitionClient;
 import ro.ieat.soso.reasoning.controllers.persistence.CoalitionRepository;
 
 import java.io.FileReader;
@@ -25,7 +27,6 @@ import java.util.logging.Logger;
  */
 public class CoalitionReasoner {
 
-    public static Map<Long, Machine> machinePredictionMap;
     public static Map<Long, Job> currentJobs;
     public static Map<String, DurationPrediction> appDurationMap;
     public static final Double THRESHOLD = 0.01;
@@ -41,7 +42,7 @@ public class CoalitionReasoner {
 
         Map<Long, Coalition> coalitionMap = new TreeMap<Long, Coalition>();
 
-        for(Machine m : machinePredictionMap.values()){
+        for(Machine m : MachineRepository.findAll()){
             update(m, coalitionMap, m.getPrediction().getStartTime());
         }
 
@@ -57,6 +58,7 @@ public class CoalitionReasoner {
             c.setCurrentETA(PredictionFactory.maxLongDurationPrediction());
 
         CoalitionRepository.coalitionMap.put(c.getId(), c);
+        CoalitionClient.sendCoalition(c);
     }
 
     public static void printCoaliion(Coalition c) throws IOException {
@@ -163,7 +165,7 @@ public class CoalitionReasoner {
     public static int update(Coalition coalition, long time) throws Exception {
 
         for(Machine m : coalition.getMachines()){
-            Machine mp = machinePredictionMap.get(m.getId());
+            Machine mp = MachineRepository.findOne(m.getId());
 
             long minSize = Long.MAX_VALUE;
             long minTaskStartTime = Long.MAX_VALUE;
