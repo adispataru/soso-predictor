@@ -3,28 +3,38 @@ package ro.ieat.soso.predictor.persistence;
 import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.jobs.Job;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Created by adrian on 08.01.2016.
  */
 public class MachineRepository{
-    private static Map<Long, Machine> machineRepository = new TreeMap<Long, Machine>();
-    public static Map<Long, Job> jobRepo;
-    public static List<Long> assignedJobs;
+    private Map<Long, Machine> machineRepository = new TreeMap<Long, Machine>();
+    public Map<Long, Job> jobRepo;
+    public List<Long> assignedJobs;
 
-    public static Machine findOne(Long machineId){
+    private MachineRepository repo;
+
+    private MachineRepository(){
+        jobRepo = new TreeMap<Long, Job>();
+        assignedJobs = new ArrayList<Long>();
+    }
+
+    public MachineRepository getInstance(){
+        if (repo == null)
+            repo = new MachineRepository();
+        return repo;
+    }
+
+    public Machine findOne(Long machineId){
         return machineRepository.get(machineId);
     }
 
-    public static Collection<Machine> findAll(){
+    public Collection<Machine> findAll(){
         return machineRepository.values();
     }
 
-    public static void save(Machine m){
+    public void save(Machine m){
         machineRepository.put(m.getId(), m);
     }
 
