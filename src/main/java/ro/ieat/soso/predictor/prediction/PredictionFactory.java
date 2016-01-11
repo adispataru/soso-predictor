@@ -142,5 +142,13 @@ public class PredictionFactory {
         d.setMin(Long.MAX_VALUE);
         return d;
     }
+    public static DurationPrediction zeroDurationPrediction(){
+        DurationPrediction d = new DurationPrediction();
+        d.setHistogram(0L);
+        d.setAverage(.0);
+        d.setMax(0L);
+        d.setMin(0L);
+        return d;
+    }
 
 }

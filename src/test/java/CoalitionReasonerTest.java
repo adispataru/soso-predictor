@@ -24,7 +24,7 @@ import static junit.framework.Assert.assertTrue;
 
 /**
  * Created by adrian on 07.01.2016.
- * Testing initialization and update for coalitioReasoner.
+ * Testing initialization and reason for coalitioReasoner.
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(App.class)
@@ -71,7 +71,7 @@ public class CoalitionReasonerTest {
         }
         assertEquals(numMachines, sum);
 
-        //Test coalition update
+        //Test coalition reason
 
         i = 0;
         for(File f : machineFiles){
@@ -100,7 +100,7 @@ public class CoalitionReasonerTest {
 
         for(Coalition c : CoalitionRepository.coalitionMap.values()){
             long endTime = c.getMachines().get(0).getPrediction().getEndTime();
-            assertEquals(0, CoalitionReasoner.update(c, 5700));
+            assertEquals(0, CoalitionReasoner.reason(c, 5700));
             long newEndTime = c.getMachines().get(0).getPrediction().getEndTime();
             assertEquals(endTime + Configuration.STEP * Configuration.TIME_DIVISOR, newEndTime);
         }

@@ -29,7 +29,7 @@ public class CoalitionReasoner {
 
     public static Map<Long, Job> currentJobs;
     public static Map<String, DurationPrediction> appDurationMap;
-    public static final Double THRESHOLD = 0.01;
+    public static final Double THRESHOLD = 0.4;
     private static Logger LOG = Logger.getLogger(CoalitionReasoner.class.toString());
     public static long c_id = 1;
 
@@ -43,7 +43,7 @@ public class CoalitionReasoner {
         Map<Long, Coalition> coalitionMap = new TreeMap<Long, Coalition>();
 
         for(Machine m : MachineRepository.findAll()){
-            update(m, coalitionMap, m.getPrediction().getStartTime());
+            reason(m, coalitionMap, m.getPrediction().getStartTime());
         }
 
         for(Coalition c : coalitionMap.values()){
@@ -54,8 +54,12 @@ public class CoalitionReasoner {
 
 
     public static void sendCoalition(Coalition c) throws IOException {
-        if (c.getCurrentETA() == null)
-            c.setCurrentETA(PredictionFactory.maxLongDurationPrediction());
+        c.setCurrentETA(PredictionFactory.zeroDurationPrediction());
+        for(Machine m : c.getMachines()){
+            if(m.getETA().getMax() > c.getCurrentETA().getMax()){
+                c.setCurrentETA(m.getETA());
+            }
+        }
 
         CoalitionRepository.coalitionMap.put(c.getId(), c);
         CoalitionClient.sendCoalition(c);
@@ -66,12 +70,13 @@ public class CoalitionReasoner {
         System.out.println(objectMapper.writeValueAsString(c));
     }
 
-    public static void update(Machine machineProperties, Map<Long, Coalition> coalitionMap, long time) throws Exception {
+    public static void reason(Machine machineProperties, Map<Long, Coalition> coalitionMap, long time) throws Exception {
 
 
 
         long minSize = Integer.MAX_VALUE;
         Coalition coalition = new Coalition();
+        coalition.setCurrentETA(PredictionFactory.maxLongDurationPrediction());
 
         //next lines are commented because I already took care of this during prediction of job times.
         long minJobRunTime = Long.MAX_VALUE;
@@ -124,11 +129,11 @@ public class CoalitionReasoner {
 
         if(availableCPU > THRESHOLD * machineProperties.getCpu() && availableMem > THRESHOLD * machineProperties.getMemory()){
 
-            //set coalition as available from current time
+            //set machine as available from current time
             List<Long> available = new ArrayList<Long>();
             available.add(time);
-            coalition.setCurrentETA(PredictionFactory.predictTime(available));
-        }//The else case was treated in the previous 'for loop' to avoid the same computation
+            machineProperties.setETA(PredictionFactory.predictTime(available));
+        }
 
         machineProperties.setTaskUsageList(null);
 
@@ -162,7 +167,7 @@ public class CoalitionReasoner {
 
 
 
-    public static int update(Coalition coalition, long time) throws Exception {
+    public static int reason(Coalition coalition, long time) throws Exception {
 
         for(Machine m : coalition.getMachines()){
             Machine mp = MachineRepository.findOne(m.getId());

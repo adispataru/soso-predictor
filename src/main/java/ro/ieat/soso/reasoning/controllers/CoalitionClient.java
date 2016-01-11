@@ -11,7 +11,7 @@ import java.util.logging.Logger;
 
 /**
  * Created by adrian on 10.01.2016.
- * CoalitionClient is responsible for communication with the consumer of coalitions, providing methods to update
+ * CoalitionClient is responsible for communication with the consumer of coalitions, providing methods to reason
  * the JobMatcher with coalitions status.
  */
 public class CoalitionClient {

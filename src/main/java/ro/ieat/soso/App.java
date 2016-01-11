@@ -208,6 +208,7 @@ public class App {
         CoalitionReasoner.appDurationMap = new TreeMap<String, DurationPrediction>();
 
         time = System.currentTimeMillis();
+        //TODO This should not be done here, but rather when the job is sent
         LOG.info("Prediciting job durations.");
         for(Job j : jobMap.values()){
 //            if(CoalitionReasoner.appDurationMap.containsKey(j.getLogicJobName()))
@@ -232,7 +233,7 @@ public class App {
             Job j = iterator.next().getValue();
             MachineRepository.jobRepo.put(j.getJobId(), j);
             Predictor.predictJobRuntime(j.getLogicJobName(), initStart, initEnd-300);
-            if(j.getSubmitTime() >= (initEnd-300) * Configuration.TIME_DIVISOR){
+            if(j.getSubmitTime() >= (initEnd) * Configuration.TIME_DIVISOR){
                 CoalitionClient.sendJobRequest(new Job(j));
                 break;
             }
