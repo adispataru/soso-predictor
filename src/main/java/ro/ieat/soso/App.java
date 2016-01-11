@@ -161,12 +161,12 @@ public class App {
         long time = System.currentTimeMillis();
 
         for(File f : new File(Configuration.JOB_EVENTS_PATH).listFiles()) {
-            JobEventsMapper.map(new FileReader(f), jobMap, initStart, initEnd);
+            JobEventsMapper.map(new FileReader(f), jobMap, initStart, maxTime);
         }
 
         LOG.info("Finished job events mapping");
         for(File f : new File(Configuration.TASK_EVENTS_PATH).listFiles()) {
-            TaskEventsMapper.map(new FileReader(f), jobMap, initStart, initEnd);
+            TaskEventsMapper.map(new FileReader(f), jobMap, initStart, maxTime);
         }
 
         LOG.info("Finished task events mapping");
@@ -183,6 +183,7 @@ public class App {
         }else{
             TaskUsageMapper.map(new FileReader(Configuration.TASK_USAGE_PATH), jobMap, initStart, initEnd);
         }
+
         LOG.info("Done.");
 
         long time2 = System.currentTimeMillis();
@@ -200,24 +201,26 @@ public class App {
             Predictor.predictMachineUsage(Long.parseLong(f.getName()), initStart, initEnd);
         }
 
-        LOG.info("Done.");
+        LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time2));
 
 
         CoalitionReasoner.currentJobs = jobMap;
         CoalitionReasoner.appDurationMap = new TreeMap<String, DurationPrediction>();
 
+        time = System.currentTimeMillis();
         LOG.info("Prediciting job durations.");
         for(Job j : jobMap.values()){
 //            if(CoalitionReasoner.appDurationMap.containsKey(j.getLogicJobName()))
 //                continue;
             Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
         }
-        LOG.info("Done.");
+        LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
 
+        time = System.currentTimeMillis();
         LOG.info("Initializing coalitions...");
         CoalitionReasoner.initCoalitions(5400);
 
-        LOG.info("Done.");
+        LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
 
 
         jobMap = MapsUtil.sortJobMaponSubmitTime(jobMap);
@@ -240,6 +243,7 @@ public class App {
 
         while (iterator.hasNext()){
             Job j = iterator.next().getValue();
+            LOG.severe(j.getJobId() + " " + j.getTaskHistory().size() + " " + j.getFinishTime());
             CoalitionClient.sendJobRequest(new Job(j));
             //TODO Add Job usage, figure out rest of flow.
         }
