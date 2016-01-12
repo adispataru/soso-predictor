@@ -42,8 +42,8 @@ public class CoalitionReasoner {
 
         Map<Long, Coalition> coalitionMap = new TreeMap<Long, Coalition>();
 
-        for(Machine m : MachineRepository.findAll()){
-            reason(m, coalitionMap, m.getPrediction().getStartTime());
+        for(Machine m : MachineRepository.getInstance().findAll()){
+            reason(m, coalitionMap, time);
         }
 
         for(Coalition c : coalitionMap.values()){
@@ -170,7 +170,7 @@ public class CoalitionReasoner {
     public static int reason(Coalition coalition, long time) throws Exception {
 
         for(Machine m : coalition.getMachines()){
-            Machine mp = MachineRepository.findOne(m.getId());
+            Machine mp = MachineRepository.getInstance().findOne(m.getId());
 
             long minSize = Long.MAX_VALUE;
             long minTaskStartTime = Long.MAX_VALUE;

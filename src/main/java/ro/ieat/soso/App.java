@@ -8,7 +8,7 @@ import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.config.Configuration;
 import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.mappers.JobEventsMapper;
-import ro.ieat.soso.core.mappers.MachineUsageMapper;
+import ro.ieat.soso.core.mappers.MachineEventsMapper;
 import ro.ieat.soso.core.mappers.TaskEventsMapper;
 import ro.ieat.soso.core.mappers.TaskUsageMapper;
 import ro.ieat.soso.core.prediction.DurationPrediction;
@@ -18,6 +18,7 @@ import ro.ieat.soso.reasoning.CoalitionReasoner;
 import ro.ieat.soso.reasoning.controllers.CoalitionClient;
 import ro.ieat.soso.reasoning.controllers.persistence.CoalitionRepository;
 import ro.ieat.soso.util.MapsUtil;
+import ro.ieat.soso.util.TaskUsageConqueror;
 
 import java.io.File;
 import java.io.FileReader;
@@ -98,7 +99,7 @@ public class App {
             TaskUsageMapper.map(new FileReader(Configuration.TASK_USAGE_PATH), jobMap, startTime, endTime);
         }
         LOG.info("Done.");
-        MachineRepository.jobRepo = jobMap;
+//        MachineRepository.jobRepo = jobMap;
 
         //Freeze!
 //        for(File f : new File(Configuration.MACHINE_USAGE_PATH).listFiles()) {
@@ -171,12 +172,28 @@ public class App {
 
         LOG.info("Finished task events mapping");
 
+        MachineRepository.getInstance().jobRepo = jobMap;
+
+
+        //Make use of machine_events file to populate MachineRepository;
+        LOG.info("Starting machine mapping");
+        MachineEventsMapper.map(new FileReader(Configuration.MACHINE_EVENTS), 0, maxTime);
+        LOG.info("Done.");
+
+        LOG.info("Generating machines based on events file");
+        for(Long id : MachineEventsMapper.MACHINES.keySet()){
+            Machine m = new Machine(id, MachineEventsMapper.MACHINES.get(id).getKey(),
+                    MachineEventsMapper.MACHINES.get(id).getValue());
+            MachineRepository.getInstance().save(m);
+        }
+
+
         LOG.info("Starting task usage mapping");
         File dir = new File(Configuration.TASK_USAGE_PATH);
         if(dir.isDirectory()){
             int i = 1;
             for(File f : dir.listFiles()){
-                TaskUsageMapper.map(new FileReader(f), jobMap, 600, initEnd);
+                TaskUsageConqueror.map(new FileReader(f), MachineRepository.getInstance(), 600, initEnd);
                 LOG.info("Processed " + i + " of " + dir.listFiles().length + " files...");
                 ++i;
             }
@@ -189,32 +206,31 @@ public class App {
         long time2 = System.currentTimeMillis();
         LOG.info("Reading duration: " + (time2 - time));
 
-        String machineUsagePath = "./data/output/machine_usage/";
-
-        File[] machineFiles = new File(machineUsagePath).listFiles();
-
-        LOG.info("Reading and predicting machine usage from files...");
-
-        for(File f : machineFiles){
-            Machine m = MachineUsageMapper.readOne(f, initStart, initEnd);
-            MachineRepository.save(m);
-            Predictor.predictMachineUsage(Long.parseLong(f.getName()), initStart, initEnd);
-        }
-
-        LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time2));
+//        String machineUsagePath = "./data/output/machine_usage/";
+//
+//        File[] machineFiles = new File(machineUsagePath).listFiles();
+//
+//        LOG.info("Reading and predicting machine usage from files...");
+//
+//        for(File f : machineFiles){
+//            Machine m = MachineUsageMapper.readOne(f, initStart, initEnd);
+//            MachineRepository.save(m);
+//            Predictor.predictMachineUsage(Long.parseLong(f.getName()), initStart, initEnd);
+//        }
+//
+//        LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time2));
 
 
         CoalitionReasoner.currentJobs = jobMap;
         CoalitionReasoner.appDurationMap = new TreeMap<String, DurationPrediction>();
 
+
         time = System.currentTimeMillis();
-        //TODO This should not be done here, but rather when the job is sent
-        LOG.info("Prediciting job durations.");
-        for(Job j : jobMap.values()){
-//            if(CoalitionReasoner.appDurationMap.containsKey(j.getLogicJobName()))
-//                continue;
-            Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
+        LOG.info("Predicting machine usage...");
+        for(Machine m : MachineRepository.getInstance().findAll()){
+            Predictor.predictMachineUsage(m.getId(), initStart, initEnd);
         }
+
         LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
 
         time = System.currentTimeMillis();
@@ -227,14 +243,16 @@ public class App {
         jobMap = MapsUtil.sortJobMaponSubmitTime(jobMap);
 
         Iterator<Map.Entry<Long, Job>> iterator = jobMap.entrySet().iterator();
-        if(MachineRepository.jobRepo == null)
-            MachineRepository.jobRepo = new TreeMap<Long, Job>();
+        if(MachineRepository.getInstance().jobRepo == null)
+            MachineRepository.getInstance().jobRepo = new TreeMap<Long, Job>();
         while (iterator.hasNext()){
             Job j = iterator.next().getValue();
-            MachineRepository.jobRepo.put(j.getJobId(), j);
+            MachineRepository.getInstance().jobRepo.put(j.getJobId(), j);
             Predictor.predictJobRuntime(j.getLogicJobName(), initStart, initEnd-300);
             if(j.getSubmitTime() >= (initEnd) * Configuration.TIME_DIVISOR){
+                Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
                 CoalitionClient.sendJobRequest(new Job(j));
+
                 break;
             }
 
@@ -245,7 +263,9 @@ public class App {
         while (iterator.hasNext()){
             Job j = iterator.next().getValue();
             LOG.severe(j.getJobId() + " " + j.getTaskHistory().size() + " " + j.getFinishTime());
+            Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
             CoalitionClient.sendJobRequest(new Job(j));
+
             //TODO Add Job usage, figure out rest of flow.
         }
 

@@ -23,23 +23,24 @@ public class MachineUsageController {
     public ResponseEntity<ScheduledJob> assignTaskUsageToMachine(@RequestBody ScheduledJob job, HttpServletRequest request){
 
         long jobId = job.getJobId();
-        String log = MachineRepository.jobRepo.get(jobId).getLogicJobName();
+        MachineRepository machineRepository = MachineRepository.getInstance();
+        String log = machineRepository.jobRepo.get(jobId).getLogicJobName();
 
-        if(MachineRepository.jobRepo.containsKey(jobId)) {
+        if(machineRepository.jobRepo.containsKey(jobId)) {
             if(CoalitionReasoner.appDurationMap.containsKey(log)){
                 job.setFinishTime(job.getSubmitTime() + CoalitionReasoner.appDurationMap.get(log).getMax());
             }
-            for(TaskHistory taskHistory : MachineRepository.jobRepo.get(jobId).getTaskHistory().values()){
+            for(TaskHistory taskHistory : machineRepository.jobRepo.get(jobId).getTaskHistory().values()){
                 long taskId = taskHistory.getTaskIndex();
                 long machineId = job.getTaskMachineMapping().get(taskId);
-                Machine m = MachineRepository.findOne(machineId);
+                Machine m = machineRepository.findOne(machineId);
                 if(m != null)
                     m.getTaskUsageList().add(taskHistory.getTaskUsage());
                 else{
                     System.out.printf("Machine not found!: %d", machineId);
                 }
             }
-            MachineRepository.assignedJobs.add(job.getJobId());
+            machineRepository.assignedJobs.add(job.getJobId());
             return new ResponseEntity<ScheduledJob>(job, HttpStatus.OK);
         } else{
             return new ResponseEntity<ScheduledJob>(job, HttpStatus.NOT_FOUND);
@@ -50,21 +51,22 @@ public class MachineUsageController {
     @RequestMapping(method = RequestMethod.POST, path = "assign/usage")
     public ResponseEntity<String> assignRestOfJobs(){
 
-        for(Job j : MachineRepository.jobRepo.values()){
-            if(MachineRepository.assignedJobs.contains(j.getJobId()))
+        MachineRepository machineRepository = MachineRepository.getInstance();
+        for(Job j : machineRepository.jobRepo.values()){
+            if(machineRepository.assignedJobs.contains(j.getJobId()))
                 continue;
 
             for(TaskHistory taskHistory : j.getTaskHistory().values()){
                 long taskId = taskHistory.getTaskIndex();
                 long machineId = taskHistory.getMachineId();
-                Machine m = MachineRepository.findOne(machineId);
+                Machine m = machineRepository.findOne(machineId);
                 if(m != null)
                     m.getTaskUsageList().add(taskHistory.getTaskUsage());
                 else{
                     System.out.printf("Machine not found!: %d", machineId);
                 }
             }
-            MachineRepository.assignedJobs.add(j.getJobId());
+            machineRepository.assignedJobs.add(j.getJobId());
 
         }
 
@@ -76,21 +78,22 @@ public class MachineUsageController {
 
     @RequestMapping(method =  RequestMethod.POST, path = "assign/normalJob/{id}")
     public ResponseEntity<String> assignJob(@PathVariable("id") long id){
-        Job j = MachineRepository.jobRepo.get(id);
-        if(MachineRepository.assignedJobs.contains(j.getJobId()))
+        MachineRepository machineRepository = MachineRepository.getInstance();
+        Job j = machineRepository.jobRepo.get(id);
+        if(machineRepository.assignedJobs.contains(j.getJobId()))
             return new ResponseEntity<String>("ok", HttpStatus.NO_CONTENT);;
 
         for(TaskHistory taskHistory : j.getTaskHistory().values()){
             long taskId = taskHistory.getTaskIndex();
             long machineId = taskHistory.getMachineId();
-            Machine m = MachineRepository.findOne(machineId);
+            Machine m = machineRepository.findOne(machineId);
             if(m != null)
                 m.getTaskUsageList().add(taskHistory.getTaskUsage());
             else{
                 System.out.printf("Machine not found!: %d", machineId);
             }
         }
-        MachineRepository.assignedJobs.add(j.getJobId());
+        machineRepository.assignedJobs.add(j.getJobId());
 
         return new ResponseEntity<String>("ok", HttpStatus.OK);
     }

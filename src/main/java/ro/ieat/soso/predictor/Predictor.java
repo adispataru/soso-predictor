@@ -23,11 +23,13 @@ import java.util.List;
  */
 public  class Predictor {
 
+
     public static int predictMachineUsage(long machineId, long historyStart, long historyEnd) throws IOException, InterruptedException {
 
 //        String path = Configuration.MACHINE_USAGE_PATH + "/" + machineId;
 //        Machine m = MachineUsageMapper.readOne(new File(path), historyStart, historyEnd);
-        Machine m = MachineRepository.findOne(machineId);
+        MachineRepository machineRepository = MachineRepository.getInstance();
+        Machine m = machineRepository.findOne(machineId);
         List<TaskUsage> machineUsage =  m.getTaskUsageList();
 
         List<Usage> usageList = new ArrayList<Usage>();

@@ -13,14 +13,14 @@ public class MachineRepository{
     public Map<Long, Job> jobRepo;
     public List<Long> assignedJobs;
 
-    private MachineRepository repo;
+    private static MachineRepository repo;
 
     private MachineRepository(){
         jobRepo = new TreeMap<Long, Job>();
         assignedJobs = new ArrayList<Long>();
     }
 
-    public MachineRepository getInstance(){
+    public static MachineRepository getInstance(){
         if (repo == null)
             repo = new MachineRepository();
         return repo;

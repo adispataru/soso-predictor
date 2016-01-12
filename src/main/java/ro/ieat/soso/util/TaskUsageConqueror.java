@@ -86,9 +86,14 @@ public class TaskUsageConqueror {
                 }
 
             Machine m = machineRepository.findOne(machine);
-            for(int i = 0; i < m.getTaskUsageList().size(); i++){
-                if (m.getTaskUsageList().get(i).getTaskIndex() == t.getTaskIndex())
-                    m.getTaskUsageList().set(i, t.getTaskUsage());
+            if(m.getTaskUsageList() != null) {
+                for (int i = 0; i < m.getTaskUsageList().size(); i++) {
+                    if (m.getTaskUsageList().get(i).getTaskIndex() == t.getTaskIndex())
+                        m.getTaskUsageList().set(i, t.getTaskUsage());
+                }
+            }else{
+                m.setTaskUsageList(new ArrayList<TaskUsage>());
+                m.getTaskUsageList().add(t.getTaskUsage());
             }
             machineRepository.save(m);
 

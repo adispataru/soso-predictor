@@ -13,7 +13,7 @@ public class MachineUsagePredictionController {
     //Eventually this should be a REST method.
     public static void updateMachineStatus(long id, Machine prediction){
 
-            MachineRepository.save(prediction);
+            MachineRepository.getInstance().save(prediction);
     }
 
 
