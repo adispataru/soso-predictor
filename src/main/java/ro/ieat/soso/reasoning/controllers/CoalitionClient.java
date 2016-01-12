@@ -19,6 +19,7 @@ public class CoalitionClient {
     private static RestTemplate restTemplate;
     private static String coalitionTargetUrl = "http://localhost:8090/coalition";
     private static String jobRequestTargetUrl = "http://localhost:8090/job";
+    private static final Logger LOG = Logger.getLogger("CoalitionClient");
 
     public static void sendCoalition(Coalition c){
         restTemplate = new RestTemplate();
@@ -29,6 +30,7 @@ public class CoalitionClient {
     }
 
     public static void sendJobRequest(Job j){
+        LOG.info("Job to send:\n" + j.toString());
         restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
