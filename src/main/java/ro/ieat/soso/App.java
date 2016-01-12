@@ -262,7 +262,7 @@ public class App {
 
         while (iterator.hasNext()){
             Job j = iterator.next().getValue();
-            LOG.severe(j.getJobId() + " " + j.getTaskHistory().size() + " " + j.getFinishTime());
+            LOG.info(j.toString());
             Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
             CoalitionClient.sendJobRequest(new Job(j));
 
