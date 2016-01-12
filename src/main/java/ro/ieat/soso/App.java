@@ -125,7 +125,6 @@ public class App {
             TaskEventsMapper.map(new FileReader(f), jobMap, 600, 5400);
         }
 
-        CoalitionReasoner.currentJobs = jobMap;
         CoalitionReasoner.appDurationMap = new TreeMap<String, DurationPrediction>();
         for(Job j : jobMap.values()){
 //            if(CoalitionReasoner.appDurationMap.containsKey(j.getLogicJobName()))
@@ -220,8 +219,6 @@ public class App {
 //
 //        LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time2));
 
-
-        CoalitionReasoner.currentJobs = jobMap;
         CoalitionReasoner.appDurationMap = new TreeMap<String, DurationPrediction>();
 
 
@@ -235,7 +232,12 @@ public class App {
 
         time = System.currentTimeMillis();
         LOG.info("Initializing coalitions...");
-        CoalitionReasoner.initCoalitions(5400);
+        CoalitionReasoner.initCoalitions(initEnd);
+        for(Coalition c : CoalitionRepository.coalitionMap.values()){
+            LOG.info("Id: " + c.getId());
+        }
+
+
 
         LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
 
@@ -250,7 +252,6 @@ public class App {
             MachineRepository.getInstance().jobRepo.put(j.getJobId(), j);
             Predictor.predictJobRuntime(j.getLogicJobName(), initStart, initEnd-300);
             if(j.getSubmitTime() >= (initEnd) * Configuration.TIME_DIVISOR){
-                Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
                 CoalitionClient.sendJobRequest(new Job(j, true));
 
                 break;

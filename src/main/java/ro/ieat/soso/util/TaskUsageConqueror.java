@@ -78,22 +78,26 @@ public class TaskUsageConqueror {
             task.setUsageList(usages);
 
             TaskHistory t = machineRepository.jobRepo.get(jobId).getTaskHistory().get(taskIndex);
-            if(t.getTaskIndex() == taskIndex)
-                if(t.getTaskUsage() != null) {
-                    t.getTaskUsage().combineUsage(task);
-                }else{
-                    t.setTaskUsage(task);
-                }
+            if(t.getTaskUsage() != null) {
+                t.getTaskUsage().getUsageList().add (usage);
+            }else{
+                t.setTaskUsage(task);
+            }
 
             Machine m = machineRepository.findOne(machine);
+
             if(m.getTaskUsageList() != null) {
-                for (int i = 0; i < m.getTaskUsageList().size(); i++) {
-                    if (m.getTaskUsageList().get(i).getTaskIndex() == t.getTaskIndex())
-                        m.getTaskUsageList().set(i, t.getTaskUsage());
+                if(m.getTaskUsageList().size() > 0){
+                    //Logger.getLogger("Conquer").info("machine usage size: " + m.getTaskUsageList().size());
+                    for (int i = 0; i < m.getTaskUsageList().size(); i++) {
+                        if (m.getTaskUsageList().get(i).getTaskIndex() == t.getTaskIndex())
+                            m.getTaskUsageList().get(i).getUsageList().add(usage);
+                    }
+                }else{
+                    //Logger.getLogger("Conquer").info("Creating new task usage for machine: " + m.getId());
+                    m.setTaskUsageList(new ArrayList<TaskUsage>());
+                    m.getTaskUsageList().add(t.getTaskUsage());
                 }
-            }else{
-                m.setTaskUsageList(new ArrayList<TaskUsage>());
-                m.getTaskUsageList().add(t.getTaskUsage());
             }
             machineRepository.save(m);
 
