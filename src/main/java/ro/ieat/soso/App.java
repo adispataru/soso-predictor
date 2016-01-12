@@ -251,7 +251,7 @@ public class App {
             Predictor.predictJobRuntime(j.getLogicJobName(), initStart, initEnd-300);
             if(j.getSubmitTime() >= (initEnd) * Configuration.TIME_DIVISOR){
                 Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
-                CoalitionClient.sendJobRequest(new Job(j));
+                CoalitionClient.sendJobRequest(new Job(j, true));
 
                 break;
             }
@@ -264,7 +264,7 @@ public class App {
             Job j = iterator.next().getValue();
             LOG.info(j.toString());
             Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
-            CoalitionClient.sendJobRequest(new Job(j));
+            CoalitionClient.sendJobRequest(new Job(j, true));
 
             //TODO Add Job usage, figure out rest of flow.
         }
