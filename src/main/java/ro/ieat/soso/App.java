@@ -249,7 +249,7 @@ public class App {
         LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
 
 
-        jobMap = MapsUtil.sortJobMaponSubmitTime(jobMap);
+        MachineRepository.getInstance().jobRepo = MapsUtil.sortJobMaponSubmitTime(jobMap);
 
         Iterator<Map.Entry<Long, Job>> iterator = jobMap.entrySet().iterator();
         if(MachineRepository.getInstance().jobRepo == null)
