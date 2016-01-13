@@ -229,7 +229,6 @@ public class CoalitionReasoner {
 
 
             }
-            System.out.printf("ECPU-EndTime: %d", mp.getPrediction().getEndTime());
             m.setPrediction(mp.getPrediction());
 
             //Check availability of machine
