@@ -8,7 +8,6 @@ import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.jobs.ScheduledJob;
 import ro.ieat.soso.core.jobs.TaskHistory;
 import ro.ieat.soso.predictor.persistence.MachineRepository;
-import ro.ieat.soso.reasoning.CoalitionReasoner;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -27,12 +26,17 @@ public class MachineUsageController {
         String log = machineRepository.jobRepo.get(jobId).getLogicJobName();
 
         if(machineRepository.jobRepo.containsKey(jobId)) {
-            if(CoalitionReasoner.appDurationMap.containsKey(log)){
-                job.setFinishTime(job.getSubmitTime() + CoalitionReasoner.appDurationMap.get(log).getMax());
-            }
+//            if(CoalitionReasoner.appDurationMap.containsKey(log)){
+//                job.setFinishTime(job.getTimeToStart() + CoalitionReasoner.appDurationMap.get(log).getMax());
+//            }
+            //instead set real time here
+            job.setFinishTime(machineRepository.jobRepo.get(jobId).getFinishTime());
+
             for(TaskHistory taskHistory : machineRepository.jobRepo.get(jobId).getTaskHistory().values()){
                 long taskId = taskHistory.getTaskIndex();
                 long machineId = job.getTaskMachineMapping().get(taskId);
+                System.out.printf("Task: %s from %d", taskHistory, jobId);
+                taskHistory.getTaskUsage().setTaskIndex(taskId);
                 Machine m = machineRepository.findOne(machineId);
                 if(m != null)
                     m.getTaskUsageList().add(taskHistory.getTaskUsage());

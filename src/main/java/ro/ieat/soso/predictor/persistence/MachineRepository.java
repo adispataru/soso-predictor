@@ -12,6 +12,7 @@ public class MachineRepository{
     private Map<Long, Machine> machineRepository = new TreeMap<Long, Machine>();
     public Map<Long, Job> jobRepo;
     public List<Long> assignedJobs;
+    public Map<Long, Long> timeJobMap = new TreeMap<>();
 
     private static MachineRepository repo;
 

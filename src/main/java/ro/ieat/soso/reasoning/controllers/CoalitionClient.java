@@ -29,7 +29,7 @@ public class CoalitionClient {
 
     }
 
-    public static void sendJobRequest(Job j){
+    public static ScheduledJob sendJobRequest(Job j){
         LOG.info("Job to send:\n" + j.toString());
         restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
@@ -37,6 +37,8 @@ public class CoalitionClient {
         ScheduledJob s = restTemplate.postForObject(jobRequestTargetUrl, j, ScheduledJob.class, headers);
 
         if(s != null)
-            Logger.getLogger("Dummy").info("event: " + s.getJobId());
+            Logger.getLogger("JobRequester").info("event: " + s.getJobId());
+
+        return s;
     }
 }

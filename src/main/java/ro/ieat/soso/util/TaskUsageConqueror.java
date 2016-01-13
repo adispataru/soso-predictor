@@ -101,7 +101,7 @@ public class TaskUsageConqueror {
             }
             machineRepository.save(m);
 
-
+            machineRepository.timeJobMap.put(machineRepository.jobRepo.get(jobId).getSubmitTime(), jobId);
 
         }
         br.close();

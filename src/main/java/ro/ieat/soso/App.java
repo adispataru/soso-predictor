@@ -1,18 +1,19 @@
 package ro.ieat.soso;
 
 import org.codehaus.jackson.map.ObjectMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import ro.ieat.soso.core.coalitions.Coalition;
 import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.config.Configuration;
 import ro.ieat.soso.core.jobs.Job;
+import ro.ieat.soso.core.jobs.ScheduledJob;
 import ro.ieat.soso.core.mappers.JobEventsMapper;
 import ro.ieat.soso.core.mappers.MachineEventsMapper;
 import ro.ieat.soso.core.mappers.TaskEventsMapper;
 import ro.ieat.soso.core.mappers.TaskUsageMapper;
 import ro.ieat.soso.core.prediction.DurationPrediction;
+import ro.ieat.soso.evaluator.Evaluator;
 import ro.ieat.soso.predictor.Predictor;
 import ro.ieat.soso.predictor.persistence.MachineRepository;
 import ro.ieat.soso.reasoning.CoalitionReasoner;
@@ -38,8 +39,6 @@ import java.util.logging.Logger;
 public class App {
 
     private static Logger LOG = Logger.getLogger(App.class.toString());
-    @Autowired
-    private  static CoalitionRepository coalitionRepository;
 
     public static void main(String[] args) throws Exception {
         Configuration.MACHINE_USAGE_PATH = "./data/output/machine_usage";
@@ -136,7 +135,7 @@ public class App {
         }
 
         CoalitionReasoner.initCoalitions(5400);
-        Collection<Coalition> cs = coalitionRepository.findAll();
+        Collection<Coalition> cs = CoalitionRepository.coalitionMap.values();
 
         String coalitionOutputFolder = "./data/coalitions/";
 
@@ -156,6 +155,11 @@ public class App {
     }
 
     public static void runIndefinetely() throws Exception {
+
+//        Configuration.JOB_EVENTS_PATH = "/home/adrian/work/ieat/CloudLightning/soso-predictor/" + Configuration.JOB_EVENTS_PATH;
+//        Configuration.TASK_EVENTS_PATH = "/home/adrian/work/ieat/CloudLightning/soso-predictor/" + Configuration.TASK_EVENTS_PATH;
+//        Configuration.TASK_USAGE_PATH = "/home/adrian/work/ieat/CloudLightning/soso-predictor/" + Configuration.TASK_USAGE_PATH;
+//        Configuration.MACHINE_EVENTS = "/home/adrian/work/ieat/CloudLightning/soso-predictor/" + Configuration.MACHINE_EVENTS;
 
         long initStart = 0, initEnd = 5700;
         Long maxTime = Long.MAX_VALUE / Configuration.TIME_DIVISOR;
@@ -195,7 +199,7 @@ public class App {
         if(dir.isDirectory()){
             int i = 1;
             for(File f : dir.listFiles()){
-                TaskUsageConqueror.map(new FileReader(f), MachineRepository.getInstance(), 600, initEnd);
+                TaskUsageConqueror.map(new FileReader(f), MachineRepository.getInstance(), initStart, maxTime);
                 LOG.info("Processed " + i + " of " + dir.listFiles().length + " files...");
                 ++i;
             }
@@ -236,7 +240,7 @@ public class App {
         time = System.currentTimeMillis();
         LOG.info("Initializing coalitions...");
         CoalitionReasoner.initCoalitions(initEnd);
-        for(Coalition c : coalitionRepository.findAll()){
+        for(Coalition c : CoalitionRepository.coalitionMap.values()){
             LOG.info("Id: " + c.getId());
         }
 
@@ -245,41 +249,69 @@ public class App {
         LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
 
 
-        jobMap = MapsUtil.sortJobMaponSubmitTime(jobMap);
+        MachineRepository.getInstance().jobRepo = MapsUtil.sortJobMaponSubmitTime(jobMap);
 
-        Iterator<Map.Entry<Long, Job>> iterator = jobMap.entrySet().iterator();
+        Iterator<Map.Entry<Long, Job>> iterator = MachineRepository.getInstance().jobRepo.entrySet().iterator();
         if(MachineRepository.getInstance().jobRepo == null)
             MachineRepository.getInstance().jobRepo = new TreeMap<Long, Job>();
         while (iterator.hasNext()){
             Job j = iterator.next().getValue();
+            if(j.getSubmitTime() == 0)
+                continue;
             MachineRepository.getInstance().jobRepo.put(j.getJobId(), j);
             Predictor.predictJobRuntime(j.getLogicJobName(), initStart, initEnd-300);
             if(j.getSubmitTime() >= (initEnd) * Configuration.TIME_DIVISOR){
                 CoalitionClient.sendJobRequest(new Job(j, true));
-
+                LOG.info("For job " + j.getJobId() + " status is " + j.getStatus() + " at time " + j.getSubmitTime());
                 break;
             }
 
         }
 
 
-        time = initEnd;
+        time = initEnd + Configuration.STEP;
         long experimentEndTime = 7000;
 
         while (iterator.hasNext()){
 
             Job j = iterator.next().getValue();
-            Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
-            if(j.getSubmitTime() <= (time) * Configuration.TIME_DIVISOR){
-                Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
-                CoalitionClient.sendJobRequest(new Job(j, true));
-            }else{
-                if(time < experimentEndTime){
-                    time += Configuration.STEP;
+            LOG.info("For job " + j.getJobId() + " status is " + j.getStatus() + " at time " + j.getSubmitTime());
+
+            if(j.getTaskHistory().get(0L).getTaskUsage() == null)
+                continue;
+
+            if(j.getStatus().equals("finish")) {
+                if (j.getSubmitTime() <= (time) * Configuration.TIME_DIVISOR) {
+                    Predictor.predictJobRuntime(j.getLogicJobName(), initStart, time);
+                    ScheduledJob scheduledJob = CoalitionClient.sendJobRequest(new Job(j, true));
+                    if (scheduledJob != null) {
+                        Evaluator.evaluate(scheduledJob);
+                    } else {
+
+                        LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
+                    }
+                } else {
+                    CoalitionReasoner.updateAll(time);
+                    Predictor.predictJobRuntime(j.getLogicJobName(), initStart, time);
+                    ScheduledJob scheduledJob = CoalitionClient.sendJobRequest(new Job(j, true));
+                    if (scheduledJob != null) {
+                        Evaluator.evaluate(scheduledJob);
+                    } else {
+
+                        LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
+                    }
+
+                    if (experimentEndTime - time > Configuration.STEP) {
+                        time += Configuration.STEP;
+                    } else {
+                        break;
+                    }
                 }
+            } else{
+                //TODO Log this to machine usage...
+                LOG.info("Not sending " + j.getJobId() + " because status is " + j.getStatus() + " at time " + j.getSubmitTime());
             }
 
-            //TODO Add Job usage, figure out rest of flow.
         }
 
 

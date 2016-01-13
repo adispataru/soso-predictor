@@ -49,18 +49,20 @@ public class CoalitionReasoner {
     }
 
 
-    public static void sendCoalition(Coalition c) throws IOException {
+    public static void sendCoalition(Coalition c) {
 
-        c.setCurrentETA(PredictionFactory.zeroDurationPrediction());
-        for(Machine m : c.getMachines()){
-            if(m.getETA().getMax() > c.getCurrentETA().getMax()){
-                c.setCurrentETA(m.getETA());
+        if(c.getCurrentETA().getMax() == 0L) {
+            for (Machine m : c.getMachines()) {
+                if (m.getETA().getMax() > c.getCurrentETA().getMax()) {
+                    c.setCurrentETA(m.getETA());
+                }
             }
         }
         if(c.getId() == 0)
             c.setId(c_id++);
         coalitionRepository.save(c);
         LOG.info("Sending coalition " + c.getId() + "with size " + c.getMachines().size());
+
         CoalitionClient.sendCoalition(c);
     }
 
@@ -75,7 +77,7 @@ public class CoalitionReasoner {
 
         long minSize = Integer.MAX_VALUE;
         Coalition coalition = new Coalition();
-        coalition.setCurrentETA(PredictionFactory.maxLongDurationPrediction());
+        coalition.setCurrentETA(PredictionFactory.zeroDurationPrediction());
 
         //next lines are commented because I already took care of this during prediction of job times.
         long minJobRunTime = Long.MAX_VALUE;
@@ -102,9 +104,9 @@ public class CoalitionReasoner {
             String logJobName = currentJobs.get(jobId).getLogicJobName();
 
             if(appDurationMap.containsKey(logJobName)) {
-                long maxEndTime = currentJobs.get(jobId).getScheduleTime() + appDurationMap.get(logJobName).getMax();
+                //long maxEndTime = currentJobs.get(jobId).getScheduleTime() + appDurationMap.get(logJobName).getMax();
 
-                coalition.getJobs().put(logJobName, maxEndTime);
+                coalition.getJobs().put(logJobName, appDurationMap.get(logJobName).getMax());
 
                 if (minJobRunTime > appDurationMap.get(logJobName).getMin()) {
                     coalition.setCurrentETA(appDurationMap.get(logJobName));
@@ -143,7 +145,8 @@ public class CoalitionReasoner {
 //        LOG.info("min size: " + minSize);
 //        LOG.info("machine usage size: " + machineProperties.getTaskUsageList().size());
 
-        machineProperties.setTaskUsageList(null);
+        //machineProperties.setTaskUsageList(null);
+        MachineRepository.getInstance().save(machineProperties);
 
         if(coalition.getMachines() == null)
             coalition.setMachines(new ArrayList<Machine>());
@@ -178,7 +181,10 @@ public class CoalitionReasoner {
     public static int updateAll(long time){
         for(Coalition c : coalitionRepository.findAll()){
             reason(c, time);
+            if(c.getCurrentETA().getMax() > (time + Configuration.STEP) * Configuration.TIME_DIVISOR)
+                sendCoalition(c);
         }
+
 
         return 0;
     }
@@ -209,9 +215,9 @@ public class CoalitionReasoner {
                 String logJobName = currentJobs.get(jobId).getLogicJobName();
 
                 if(appDurationMap.containsKey(logJobName)) {
-                    long maxEndTime = currentJobs.get(jobId).getScheduleTime() + appDurationMap.get(logJobName).getMax();
+                    //long maxEndTime = currentJobs.get(jobId).getScheduleTime() + appDurationMap.get(logJobName).getMax();
 
-                    coalition.getJobs().put(logJobName, maxEndTime);
+                    coalition.getJobs().put(logJobName, appDurationMap.get(logJobName).getMax());
 
                     if (minTaskStartTime > appDurationMap.get(logJobName).getMin()) {
                         coalition.setCurrentETA(appDurationMap.get(logJobName));
@@ -227,7 +233,6 @@ public class CoalitionReasoner {
 
 
             }
-            System.out.printf("ECPU-EndTime: %d", mp.getPrediction().getEndTime());
             m.setPrediction(mp.getPrediction());
 
             //Check availability of machine
