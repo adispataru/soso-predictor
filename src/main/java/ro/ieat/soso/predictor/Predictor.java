@@ -60,7 +60,8 @@ public  class Predictor {
         String jobsPath = "./data/s_jobs.csv";
 
         List<Job> jobs = MachineRepository.getInstance().jobRepo.values().stream()
-                .filter(j -> j.getLogicJobName().equals(logicJobName)).collect(Collectors.toList());
+                .filter(j -> j.getLogicJobName().equals(logicJobName)
+                && j.getFinishTime() < historyEnd).collect(Collectors.toList());
         List<Long> durationList = new ArrayList<Long>();
         for(Job j : jobs){
             if(j.getFinishTime() == 0 || j.getScheduleTime() == 0 || !"finish".equals(j.getStatus()))
