@@ -212,9 +212,9 @@ public class CoalitionReasoner {
                 String logJobName = currentJobs.get(jobId).getLogicJobName();
 
                 if(appDurationMap.containsKey(logJobName)) {
-                    long maxEndTime = currentJobs.get(jobId).getScheduleTime() + appDurationMap.get(logJobName).getMax();
+                    //long maxEndTime = currentJobs.get(jobId).getScheduleTime() + appDurationMap.get(logJobName).getMax();
 
-                    coalition.getJobs().put(logJobName, maxEndTime);
+                    coalition.getJobs().put(logJobName, appDurationMap.get(logJobName).getMax());
 
                     if (minTaskStartTime > appDurationMap.get(logJobName).getMin()) {
                         coalition.setCurrentETA(appDurationMap.get(logJobName));
