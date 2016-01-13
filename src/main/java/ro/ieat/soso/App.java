@@ -260,16 +260,20 @@ public class App {
         }
 
 
-        long someTime = 7000;
+        time = initEnd;
+        long experimentEndTime = 7000;
 
         while (iterator.hasNext()){
+
             Job j = iterator.next().getValue();
             Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
-            if(j.getSubmitTime() <= (someTime) * Configuration.TIME_DIVISOR){
+            if(j.getSubmitTime() <= (time) * Configuration.TIME_DIVISOR){
                 Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
                 CoalitionClient.sendJobRequest(new Job(j, true));
             }else{
-                break;
+                if(time < experimentEndTime){
+                    time += Configuration.STEP;
+                }
             }
 
             //TODO Add Job usage, figure out rest of flow.

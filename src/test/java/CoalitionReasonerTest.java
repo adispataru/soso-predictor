@@ -54,7 +54,6 @@ public class CoalitionReasonerTest {
             TaskEventsMapper.map(new FileReader(f), jobMap, 600, 5400);
         }
 
-        CoalitionReasoner.currentJobs = jobMap;
         CoalitionReasoner.appDurationMap = new TreeMap<String, DurationPrediction>();
         for(Job j : jobMap.values()){
 //            if(CoalitionReasoner.appDurationMap.containsKey(j.getLogicJobName()))
@@ -89,7 +88,6 @@ public class CoalitionReasonerTest {
             TaskEventsMapper.map(new FileReader(f), jobMap, 5400, 5700);
         }
 
-        CoalitionReasoner.currentJobs = jobMap;
         CoalitionReasoner.appDurationMap = new TreeMap<String, DurationPrediction>();
         for(Job j : jobMap.values()){
 //            if(CoalitionReasoner.appDurationMap.containsKey(j.getLogicJobName()))
