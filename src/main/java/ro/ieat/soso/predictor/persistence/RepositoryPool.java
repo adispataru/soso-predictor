@@ -8,22 +8,22 @@ import java.util.*;
 /**
  * Created by adrian on 08.01.2016.
  */
-public class MachineRepository{
+public class RepositoryPool {
     private Map<Long, Machine> machineRepository = new TreeMap<Long, Machine>();
     public Map<Long, Job> jobRepo;
     public List<Long> assignedJobs;
     public Map<Long, Long> timeJobMap = new TreeMap<>();
 
-    private static MachineRepository repo;
+    private static RepositoryPool repo;
 
-    private MachineRepository(){
+    private RepositoryPool(){
         jobRepo = new TreeMap<Long, Job>();
         assignedJobs = new ArrayList<Long>();
     }
 
-    public static MachineRepository getInstance(){
+    public static RepositoryPool getInstance(){
         if (repo == null)
-            repo = new MachineRepository();
+            repo = new RepositoryPool();
         return repo;
     }
 

@@ -4,7 +4,7 @@ import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.coalitions.Usage;
 import ro.ieat.soso.core.jobs.TaskHistory;
 import ro.ieat.soso.core.jobs.TaskUsage;
-import ro.ieat.soso.predictor.persistence.MachineRepository;
+import ro.ieat.soso.predictor.persistence.RepositoryPool;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -17,7 +17,7 @@ import java.util.ArrayList;
  */
 public class TaskUsageConqueror {
 
-    public static void map(FileReader fileReader, MachineRepository machineRepository, long start, long end) throws IOException, InterruptedException {
+    public static void map(FileReader fileReader, RepositoryPool machineRepository, long start, long end) throws IOException, InterruptedException {
 
 
         BufferedReader br = new BufferedReader(fileReader);

@@ -9,7 +9,7 @@ import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.jobs.TaskUsage;
 import ro.ieat.soso.core.mappers.MachineEventsMapper;
 import ro.ieat.soso.core.prediction.DurationPrediction;
-import ro.ieat.soso.predictor.persistence.MachineRepository;
+import ro.ieat.soso.predictor.persistence.RepositoryPool;
 import ro.ieat.soso.predictor.prediction.PredictionFactory;
 import ro.ieat.soso.reasoning.controllers.CoalitionClient;
 import ro.ieat.soso.reasoning.controllers.persistence.CoalitionRepository;
@@ -39,7 +39,7 @@ public class CoalitionReasoner {
 
         Map<Long, Coalition> coalitionMap = new TreeMap<Long, Coalition>();
 
-        for(Machine m : MachineRepository.getInstance().findAll()){
+        for(Machine m : RepositoryPool.getInstance().findAll()){
             reason(m, coalitionMap, time);
         }
 
@@ -81,7 +81,7 @@ public class CoalitionReasoner {
 
         //next lines are commented because I already took care of this during prediction of job times.
         long minJobRunTime = Long.MAX_VALUE;
-        Map<Long, Job> currentJobs = MachineRepository.getInstance().jobRepo;
+        Map<Long, Job> currentJobs = RepositoryPool.getInstance().jobRepo;
 //        LOG.info("Tasks in machine : " + machineProperties.getTaskUsageList().size());
 //        LOG.info("Current jobs  : " + currentJobs.size());
 
@@ -146,7 +146,7 @@ public class CoalitionReasoner {
 //        LOG.info("machine usage size: " + machineProperties.getTaskUsageList().size());
 
         //machineProperties.setTaskUsageList(null);
-        MachineRepository.getInstance().save(machineProperties);
+        RepositoryPool.getInstance().save(machineProperties);
 
         if(coalition.getMachines() == null)
             coalition.setMachines(new ArrayList<Machine>());
@@ -194,11 +194,11 @@ public class CoalitionReasoner {
     public static int reason(Coalition coalition, long time) {
 
         for(Machine m : coalition.getMachines()){
-            Machine mp = MachineRepository.getInstance().findOne(m.getId());
+            Machine mp = RepositoryPool.getInstance().findOne(m.getId());
 
             long minSize = Long.MAX_VALUE;
             long minTaskStartTime = Long.MAX_VALUE;
-            Map<Long, Job> currentJobs = MachineRepository.getInstance().jobRepo;
+            Map<Long, Job> currentJobs = RepositoryPool.getInstance().jobRepo;
             for(TaskUsage taskUsage : mp.getTaskUsageList()){
                 Long jobId = taskUsage.getJobId();
                 if(!currentJobs.containsKey(jobId))

@@ -8,7 +8,7 @@ import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.jobs.TaskUsage;
 import ro.ieat.soso.core.prediction.DurationPrediction;
 import ro.ieat.soso.core.prediction.MachinePrediction;
-import ro.ieat.soso.predictor.persistence.MachineRepository;
+import ro.ieat.soso.predictor.persistence.RepositoryPool;
 import ro.ieat.soso.predictor.prediction.PredictionFactory;
 import ro.ieat.soso.reasoning.controllers.JobRuntimePredictionController;
 import ro.ieat.soso.reasoning.controllers.MachineUsagePredictionController;
@@ -28,7 +28,7 @@ public  class Predictor {
 
 //        String path = Configuration.MACHINE_USAGE_PATH + "/" + machineId;
 //        Machine m = MachineUsageMapper.readOne(new File(path), historyStart, historyEnd);
-        MachineRepository machineRepository = MachineRepository.getInstance();
+        RepositoryPool machineRepository = RepositoryPool.getInstance();
         Machine m = machineRepository.findOne(machineId);
         List<TaskUsage> machineUsage =  m.getTaskUsageList();
 
@@ -59,7 +59,7 @@ public  class Predictor {
 
         String jobsPath = "./data/s_jobs.csv";
 
-        List<Job> jobs = MachineRepository.getInstance().jobRepo.values().stream()
+        List<Job> jobs = RepositoryPool.getInstance().jobRepo.values().stream()
                 .filter(j -> j.getLogicJobName().equals(logicJobName)
                 && j.getFinishTime() < historyEnd).collect(Collectors.toList());
         List<Long> durationList = new ArrayList<Long>();

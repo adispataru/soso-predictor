@@ -1,6 +1,7 @@
 package ro.ieat.soso;
 
 import org.codehaus.jackson.map.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import ro.ieat.soso.core.coalitions.Coalition;
@@ -15,7 +16,7 @@ import ro.ieat.soso.core.mappers.TaskUsageMapper;
 import ro.ieat.soso.core.prediction.DurationPrediction;
 import ro.ieat.soso.evaluator.Evaluator;
 import ro.ieat.soso.predictor.Predictor;
-import ro.ieat.soso.predictor.persistence.MachineRepository;
+import ro.ieat.soso.predictor.persistence.RepositoryPool;
 import ro.ieat.soso.reasoning.CoalitionReasoner;
 import ro.ieat.soso.reasoning.controllers.CoalitionClient;
 import ro.ieat.soso.reasoning.controllers.persistence.CoalitionRepository;
@@ -37,6 +38,8 @@ import java.util.logging.Logger;
  */
 @SpringBootApplication
 public class App {
+    @Autowired
+    static CoalitionRepository coalitionRepository;
 
     private static Logger LOG = Logger.getLogger(App.class.toString());
 
@@ -101,11 +104,11 @@ public class App {
             TaskUsageMapper.map(new FileReader(Configuration.TASK_USAGE_PATH), jobMap, startTime, endTime);
         }
         LOG.info("Done.");
-//        MachineRepository.jobRepo = jobMap;
+//        RepositoryPool.jobRepo = jobMap;
 
         //Freeze!
 //        for(File f : new File(Configuration.MACHINE_USAGE_PATH).listFiles()) {
-//            MachineRepository.save(MachineUsageMapper.readOne(f, startTime, endTime));
+//            RepositoryPool.save(MachineUsageMapper.readOne(f, startTime, endTime));
 //        }
 
     }
@@ -135,7 +138,7 @@ public class App {
         }
 
         CoalitionReasoner.initCoalitions(5400);
-        Collection<Coalition> cs = CoalitionRepository.coalitionMap.values();
+        Collection<Coalition> cs = coalitionRepository.findAll();
 
         String coalitionOutputFolder = "./data/coalitions/";
 
@@ -178,10 +181,10 @@ public class App {
 
         LOG.info("Finished task events mapping");
 
-        MachineRepository.getInstance().jobRepo = jobMap;
+        RepositoryPool.getInstance().jobRepo = jobMap;
 
 
-        //Make use of machine_events file to populate MachineRepository;
+        //Make use of machine_events file to populate RepositoryPool;
         LOG.info("Starting machine mapping");
         MachineEventsMapper.map(new FileReader(Configuration.MACHINE_EVENTS), 0, maxTime);
         LOG.info("Done.");
@@ -190,7 +193,7 @@ public class App {
         for(Long id : MachineEventsMapper.MACHINES.keySet()){
             Machine m = new Machine(id, MachineEventsMapper.MACHINES.get(id).getKey(),
                     MachineEventsMapper.MACHINES.get(id).getValue());
-            MachineRepository.getInstance().save(m);
+            RepositoryPool.getInstance().save(m);
         }
 
 
@@ -199,7 +202,7 @@ public class App {
         if(dir.isDirectory()){
             int i = 1;
             for(File f : dir.listFiles()){
-                TaskUsageConqueror.map(new FileReader(f), MachineRepository.getInstance(), initStart, maxTime);
+                TaskUsageConqueror.map(new FileReader(f), RepositoryPool.getInstance(), initStart, maxTime);
                 LOG.info("Processed " + i + " of " + dir.listFiles().length + " files...");
                 ++i;
             }
@@ -220,7 +223,7 @@ public class App {
 //
 //        for(File f : machineFiles){
 //            Machine m = MachineUsageMapper.readOne(f, initStart, initEnd);
-//            MachineRepository.save(m);
+//            RepositoryPool.save(m);
 //            Predictor.predictMachineUsage(Long.parseLong(f.getName()), initStart, initEnd);
 //        }
 //
@@ -231,7 +234,7 @@ public class App {
 
         time = System.currentTimeMillis();
         LOG.info("Predicting machine usage...");
-        for(Machine m : MachineRepository.getInstance().findAll()){
+        for(Machine m : RepositoryPool.getInstance().findAll()){
             Predictor.predictMachineUsage(m.getId(), initStart, initEnd);
         }
 
@@ -240,7 +243,7 @@ public class App {
         time = System.currentTimeMillis();
         LOG.info("Initializing coalitions...");
         CoalitionReasoner.initCoalitions(initEnd);
-        for(Coalition c : CoalitionRepository.coalitionMap.values()){
+        for(Coalition c : coalitionRepository.findAll()){
             LOG.info("Id: " + c.getId());
         }
 
@@ -249,16 +252,16 @@ public class App {
         LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
 
 
-        MachineRepository.getInstance().jobRepo = MapsUtil.sortJobMaponSubmitTime(jobMap);
+        RepositoryPool.getInstance().jobRepo = MapsUtil.sortJobMaponSubmitTime(jobMap);
 
-        Iterator<Map.Entry<Long, Job>> iterator = MachineRepository.getInstance().jobRepo.entrySet().iterator();
-        if(MachineRepository.getInstance().jobRepo == null)
-            MachineRepository.getInstance().jobRepo = new TreeMap<Long, Job>();
+        Iterator<Map.Entry<Long, Job>> iterator = RepositoryPool.getInstance().jobRepo.entrySet().iterator();
+        if(RepositoryPool.getInstance().jobRepo == null)
+            RepositoryPool.getInstance().jobRepo = new TreeMap<Long, Job>();
         while (iterator.hasNext()){
             Job j = iterator.next().getValue();
             if(j.getSubmitTime() == 0)
                 continue;
-            MachineRepository.getInstance().jobRepo.put(j.getJobId(), j);
+            RepositoryPool.getInstance().jobRepo.put(j.getJobId(), j);
             Predictor.predictJobRuntime(j.getLogicJobName(), initStart, initEnd-300);
             if(j.getSubmitTime() >= (initEnd) * Configuration.TIME_DIVISOR){
                 CoalitionClient.sendJobRequest(new Job(j, true));

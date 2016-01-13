@@ -7,7 +7,7 @@ import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.jobs.ScheduledJob;
 import ro.ieat.soso.core.jobs.TaskHistory;
-import ro.ieat.soso.predictor.persistence.MachineRepository;
+import ro.ieat.soso.predictor.persistence.RepositoryPool;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -22,7 +22,7 @@ public class MachineUsageController {
     public ResponseEntity<ScheduledJob> assignTaskUsageToMachine(@RequestBody ScheduledJob job, HttpServletRequest request){
 
         long jobId = job.getJobId();
-        MachineRepository machineRepository = MachineRepository.getInstance();
+        RepositoryPool machineRepository = RepositoryPool.getInstance();
         String log = machineRepository.jobRepo.get(jobId).getLogicJobName();
 
         if(machineRepository.jobRepo.containsKey(jobId)) {
@@ -55,7 +55,7 @@ public class MachineUsageController {
     @RequestMapping(method = RequestMethod.POST, path = "assign/usage")
     public ResponseEntity<String> assignRestOfJobs(){
 
-        MachineRepository machineRepository = MachineRepository.getInstance();
+        RepositoryPool machineRepository = RepositoryPool.getInstance();
         for(Job j : machineRepository.jobRepo.values()){
             if(machineRepository.assignedJobs.contains(j.getJobId()))
                 continue;
@@ -82,7 +82,7 @@ public class MachineUsageController {
 
     @RequestMapping(method =  RequestMethod.POST, path = "assign/normalJob/{id}")
     public ResponseEntity<String> assignJob(@PathVariable("id") long id){
-        MachineRepository machineRepository = MachineRepository.getInstance();
+        RepositoryPool machineRepository = RepositoryPool.getInstance();
         Job j = machineRepository.jobRepo.get(id);
         if(machineRepository.assignedJobs.contains(j.getJobId()))
             return new ResponseEntity<String>("ok", HttpStatus.NO_CONTENT);;
