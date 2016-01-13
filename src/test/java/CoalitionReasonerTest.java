@@ -1,5 +1,6 @@
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import ro.ieat.soso.App;
@@ -29,6 +30,9 @@ import static junit.framework.Assert.assertTrue;
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(App.class)
 public class CoalitionReasonerTest {
+
+    @Autowired
+    CoalitionRepository coalitionRepository;
 
     @Test
     public void initializeCoalitionsTest() throws Exception {
@@ -62,7 +66,7 @@ public class CoalitionReasonerTest {
         }
 
         CoalitionReasoner.initCoalitions(5400);
-        Collection<Coalition> cs = CoalitionRepository.coalitionMap.values();
+        Collection<Coalition> cs = coalitionRepository.findAll();
         assertTrue("Coalition size", cs.size() > 0);
         long sum = 0;
         for(Coalition c : cs){
@@ -96,7 +100,7 @@ public class CoalitionReasonerTest {
         }
 
 
-        for(Coalition c : CoalitionRepository.coalitionMap.values()){
+        for(Coalition c : coalitionRepository.findAll()){
             long endTime = c.getMachines().get(0).getPrediction().getEndTime();
             assertEquals(0, CoalitionReasoner.reason(c, 5700));
             long newEndTime = c.getMachines().get(0).getPrediction().getEndTime();

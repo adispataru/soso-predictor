@@ -1,6 +1,7 @@
 package ro.ieat.soso.reasoning;
 
 import org.codehaus.jackson.map.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import ro.ieat.soso.core.coalitions.Coalition;
 import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.config.Configuration;
@@ -25,6 +26,8 @@ import java.util.logging.Logger;
  * CoalitionReasoner is the name of the main component responsible for creation and future management of coalitions
  */
 public class CoalitionReasoner {
+    @Autowired
+    private static CoalitionRepository coalitionRepository;
 
     public static Map<String, DurationPrediction> appDurationMap;
     public static final Double THRESHOLD = 0.4;
@@ -56,7 +59,7 @@ public class CoalitionReasoner {
         }
         if(c.getId() == 0)
             c.setId(c_id++);
-        CoalitionRepository.coalitionMap.put(c.getId(), c);
+        coalitionRepository.save(c);
         LOG.info("Sending coalition " + c.getId() + "with size " + c.getMachines().size());
         CoalitionClient.sendCoalition(c);
     }
@@ -173,7 +176,7 @@ public class CoalitionReasoner {
 
 
     public static int updateAll(long time){
-        for(Coalition c : CoalitionRepository.coalitionMap.values()){
+        for(Coalition c : coalitionRepository.findAll()){
             reason(c, time);
         }
 

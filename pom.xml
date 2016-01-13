@@ -29,10 +29,19 @@
             <version>${springVersion}</version>
         </dependency>
 
+        <!--testing dependencies-->
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <version>${springVersion}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.fakemongo</groupId>
+            <artifactId>fongo</artifactId>
+            <version>1.5.8</version>
+            <scope>test</scope>
         </dependency>
 
 

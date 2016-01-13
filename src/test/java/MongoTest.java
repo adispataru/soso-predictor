@@ -3,11 +3,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.SpringApplicationConfiguration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import ro.ieat.soso.App;
 import ro.ieat.soso.core.coalitions.Coalition;
 import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.reasoning.controllers.persistence.CoalitionRepository;
+import util.TestConfig;
 
 import java.util.ArrayList;
 
@@ -17,9 +20,11 @@ import java.util.ArrayList;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(App.class)
+@ContextConfiguration(classes = {App.class, TestConfig.class})
+@Profile("test")
 public class MongoTest {
     @Autowired
-    CoalitionRepository coalitionRepository;
+    private CoalitionRepository coalitionRepository;
 
     @Test
     public void test(){

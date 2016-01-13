@@ -1,6 +1,7 @@
 package ro.ieat.soso;
 
 import org.codehaus.jackson.map.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import ro.ieat.soso.core.coalitions.Coalition;
@@ -37,6 +38,8 @@ import java.util.logging.Logger;
 public class App {
 
     private static Logger LOG = Logger.getLogger(App.class.toString());
+    @Autowired
+    private  static CoalitionRepository coalitionRepository;
 
     public static void main(String[] args) throws Exception {
         Configuration.MACHINE_USAGE_PATH = "./data/output/machine_usage";
@@ -133,7 +136,7 @@ public class App {
         }
 
         CoalitionReasoner.initCoalitions(5400);
-        Collection<Coalition> cs = CoalitionRepository.coalitionMap.values();
+        Collection<Coalition> cs = coalitionRepository.findAll();
 
         String coalitionOutputFolder = "./data/coalitions/";
 
@@ -233,7 +236,7 @@ public class App {
         time = System.currentTimeMillis();
         LOG.info("Initializing coalitions...");
         CoalitionReasoner.initCoalitions(initEnd);
-        for(Coalition c : CoalitionRepository.coalitionMap.values()){
+        for(Coalition c : coalitionRepository.findAll()){
             LOG.info("Id: " + c.getId());
         }
 
