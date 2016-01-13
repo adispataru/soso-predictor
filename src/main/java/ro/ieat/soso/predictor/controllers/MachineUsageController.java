@@ -33,6 +33,7 @@ public class MachineUsageController {
             for(TaskHistory taskHistory : machineRepository.jobRepo.get(jobId).getTaskHistory().values()){
                 long taskId = taskHistory.getTaskIndex();
                 long machineId = job.getTaskMachineMapping().get(taskId);
+                System.out.printf("Task: %s from %d", taskHistory, jobId);
                 taskHistory.getTaskUsage().setTaskIndex(taskId);
                 Machine m = machineRepository.findOne(machineId);
                 if(m != null)

@@ -142,7 +142,8 @@ public class CoalitionReasoner {
 //        LOG.info("min size: " + minSize);
 //        LOG.info("machine usage size: " + machineProperties.getTaskUsageList().size());
 
-        machineProperties.setTaskUsageList(null);
+        //machineProperties.setTaskUsageList(null);
+        MachineRepository.getInstance().save(machineProperties);
 
         if(coalition.getMachines() == null)
             coalition.setMachines(new ArrayList<Machine>());

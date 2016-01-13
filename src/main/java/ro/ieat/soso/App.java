@@ -199,7 +199,7 @@ public class App {
         if(dir.isDirectory()){
             int i = 1;
             for(File f : dir.listFiles()){
-                TaskUsageConqueror.map(new FileReader(f), MachineRepository.getInstance(), 600, initEnd);
+                TaskUsageConqueror.map(new FileReader(f), MachineRepository.getInstance(), initStart, maxTime);
                 LOG.info("Processed " + i + " of " + dir.listFiles().length + " files...");
                 ++i;
             }
@@ -251,28 +251,34 @@ public class App {
 
         MachineRepository.getInstance().jobRepo = MapsUtil.sortJobMaponSubmitTime(jobMap);
 
-        Iterator<Map.Entry<Long, Job>> iterator = jobMap.entrySet().iterator();
+        Iterator<Map.Entry<Long, Job>> iterator = MachineRepository.getInstance().jobRepo.entrySet().iterator();
         if(MachineRepository.getInstance().jobRepo == null)
             MachineRepository.getInstance().jobRepo = new TreeMap<Long, Job>();
         while (iterator.hasNext()){
             Job j = iterator.next().getValue();
+            if(j.getSubmitTime() == 0)
+                continue;
             MachineRepository.getInstance().jobRepo.put(j.getJobId(), j);
             Predictor.predictJobRuntime(j.getLogicJobName(), initStart, initEnd-300);
             if(j.getSubmitTime() >= (initEnd) * Configuration.TIME_DIVISOR){
                 CoalitionClient.sendJobRequest(new Job(j, true));
-
+                LOG.info("For job " + j.getJobId() + " status is " + j.getStatus() + " at time " + j.getSubmitTime());
                 break;
             }
 
         }
 
 
-        time = initEnd;
+        time = initEnd + Configuration.STEP;
         long experimentEndTime = 7000;
 
         while (iterator.hasNext()){
 
             Job j = iterator.next().getValue();
+            LOG.info("For job " + j.getJobId() + " status is " + j.getStatus() + " at time " + j.getSubmitTime());
+
+            if(j.getTaskHistory().get(0L).getTaskUsage() == null)
+                continue;
 
             if(j.getStatus().equals("finish")) {
                 if (j.getSubmitTime() <= (time) * Configuration.TIME_DIVISOR) {
@@ -301,9 +307,9 @@ public class App {
                         break;
                     }
                 }
-            }else{
+            } else{
                 //TODO Log this to machine usage...
-                LOG.info("Not sending " + j.getJobId() + " because status is " + j.getStatus());
+                LOG.info("Not sending " + j.getJobId() + " because status is " + j.getStatus() + " at time " + j.getSubmitTime());
             }
 
         }
