@@ -7,11 +7,13 @@ import ro.ieat.soso.core.coalitions.Coalition;
 import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.config.Configuration;
 import ro.ieat.soso.core.jobs.Job;
+import ro.ieat.soso.core.jobs.ScheduledJob;
 import ro.ieat.soso.core.mappers.JobEventsMapper;
 import ro.ieat.soso.core.mappers.MachineEventsMapper;
 import ro.ieat.soso.core.mappers.TaskEventsMapper;
 import ro.ieat.soso.core.mappers.TaskUsageMapper;
 import ro.ieat.soso.core.prediction.DurationPrediction;
+import ro.ieat.soso.evaluator.Evaluator;
 import ro.ieat.soso.predictor.Predictor;
 import ro.ieat.soso.predictor.persistence.MachineRepository;
 import ro.ieat.soso.reasoning.CoalitionReasoner;
@@ -154,6 +156,11 @@ public class App {
 
     public static void runIndefinetely() throws Exception {
 
+        Configuration.JOB_EVENTS_PATH = "/home/adrian/work/ieat/CloudLightning/soso-predictor/" + Configuration.JOB_EVENTS_PATH;
+        Configuration.TASK_EVENTS_PATH = "/home/adrian/work/ieat/CloudLightning/soso-predictor/" + Configuration.TASK_EVENTS_PATH;
+        Configuration.TASK_USAGE_PATH = "/home/adrian/work/ieat/CloudLightning/soso-predictor/" + Configuration.TASK_USAGE_PATH;
+        Configuration.MACHINE_EVENTS = "/home/adrian/work/ieat/CloudLightning/soso-predictor/" + Configuration.MACHINE_EVENTS;
+
         long initStart = 0, initEnd = 5700;
         Long maxTime = Long.MAX_VALUE / Configuration.TIME_DIVISOR;
         Map<Long, Job> jobMap = new TreeMap<Long, Job>();
@@ -260,19 +267,45 @@ public class App {
         }
 
 
-        long someTime = 7000;
+        time = initEnd;
+        long experimentEndTime = 7000;
 
         while (iterator.hasNext()){
+
             Job j = iterator.next().getValue();
-            Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
-            if(j.getSubmitTime() <= (someTime) * Configuration.TIME_DIVISOR){
-                Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
-                CoalitionClient.sendJobRequest(new Job(j, true));
+
+            if(j.getStatus().equals("finish")) {
+                if (j.getSubmitTime() <= (time) * Configuration.TIME_DIVISOR) {
+                    Predictor.predictJobRuntime(j.getLogicJobName(), initStart, time);
+                    ScheduledJob scheduledJob = CoalitionClient.sendJobRequest(new Job(j, true));
+                    if (scheduledJob != null) {
+                        Evaluator.evaluate(scheduledJob);
+                    } else {
+
+                        LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
+                    }
+                } else {
+                    CoalitionReasoner.updateAll(time);
+                    Predictor.predictJobRuntime(j.getLogicJobName(), initStart, time);
+                    ScheduledJob scheduledJob = CoalitionClient.sendJobRequest(new Job(j, true));
+                    if (scheduledJob != null) {
+                        Evaluator.evaluate(scheduledJob);
+                    } else {
+
+                        LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
+                    }
+
+                    if (experimentEndTime - time > Configuration.STEP) {
+                        time += Configuration.STEP;
+                    } else {
+                        break;
+                    }
+                }
             }else{
-                break;
+                //TODO Log this to machine usage...
+                LOG.info("Not sending " + j.getJobId() + " because status is " + j.getStatus());
             }
 
-            //TODO Add Job usage, figure out rest of flow.
         }
 
 

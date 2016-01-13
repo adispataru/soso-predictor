@@ -6,7 +6,6 @@ import ro.ieat.soso.core.coalitions.Usage;
 import ro.ieat.soso.core.config.Configuration;
 import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.jobs.TaskUsage;
-import ro.ieat.soso.core.mappers.JobReader;
 import ro.ieat.soso.core.prediction.DurationPrediction;
 import ro.ieat.soso.core.prediction.MachinePrediction;
 import ro.ieat.soso.predictor.persistence.MachineRepository;
@@ -17,6 +16,7 @@ import ro.ieat.soso.reasoning.controllers.MachineUsagePredictionController;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by adrian on 11.12.2015.
@@ -55,11 +55,12 @@ public  class Predictor {
         return 0;
     }
 
-    public static int predictJobRuntime(String logicJobName, long historyStart, long historyEnd) throws IOException {
+    public static int predictJobRuntime(final String logicJobName, long historyStart, long historyEnd) throws IOException {
 
         String jobsPath = "./data/s_jobs.csv";
 
-        List<Job> jobs = JobReader.getJobsWithLogicJobName(jobsPath, logicJobName, historyStart, historyEnd);
+        List<Job> jobs = MachineRepository.getInstance().jobRepo.values().stream()
+                .filter(j -> j.getLogicJobName().equals(logicJobName)).collect(Collectors.toList());
         List<Long> durationList = new ArrayList<Long>();
         for(Job j : jobs){
             if(j.getFinishTime() == 0 || j.getScheduleTime() == 0 || !"finish".equals(j.getStatus()))

@@ -28,7 +28,7 @@ public class MachineUsageController {
 
         if(machineRepository.jobRepo.containsKey(jobId)) {
             if(CoalitionReasoner.appDurationMap.containsKey(log)){
-                job.setFinishTime(job.getSubmitTime() + CoalitionReasoner.appDurationMap.get(log).getMax());
+                job.setFinishTime(job.getTimeToStart() + CoalitionReasoner.appDurationMap.get(log).getMax());
             }
             for(TaskHistory taskHistory : machineRepository.jobRepo.get(jobId).getTaskHistory().values()){
                 long taskId = taskHistory.getTaskIndex();

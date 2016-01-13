@@ -46,18 +46,20 @@ public class CoalitionReasoner {
     }
 
 
-    public static void sendCoalition(Coalition c) throws IOException {
+    public static void sendCoalition(Coalition c) {
 
-        c.setCurrentETA(PredictionFactory.zeroDurationPrediction());
-        for(Machine m : c.getMachines()){
-            if(m.getETA().getMax() > c.getCurrentETA().getMax()){
-                c.setCurrentETA(m.getETA());
+        if(c.getCurrentETA().getMax() == 0L) {
+            for (Machine m : c.getMachines()) {
+                if (m.getETA().getMax() > c.getCurrentETA().getMax()) {
+                    c.setCurrentETA(m.getETA());
+                }
             }
         }
         if(c.getId() == 0)
             c.setId(c_id++);
         CoalitionRepository.coalitionMap.put(c.getId(), c);
         LOG.info("Sending coalition " + c.getId() + "with size " + c.getMachines().size());
+
         CoalitionClient.sendCoalition(c);
     }
 
@@ -72,7 +74,7 @@ public class CoalitionReasoner {
 
         long minSize = Integer.MAX_VALUE;
         Coalition coalition = new Coalition();
-        coalition.setCurrentETA(PredictionFactory.maxLongDurationPrediction());
+        coalition.setCurrentETA(PredictionFactory.zeroDurationPrediction());
 
         //next lines are commented because I already took care of this during prediction of job times.
         long minJobRunTime = Long.MAX_VALUE;
@@ -175,7 +177,10 @@ public class CoalitionReasoner {
     public static int updateAll(long time){
         for(Coalition c : CoalitionRepository.coalitionMap.values()){
             reason(c, time);
+            if(c.getCurrentETA().getMax() > (time + Configuration.STEP) * Configuration.TIME_DIVISOR)
+                sendCoalition(c);
         }
+
 
         return 0;
     }
