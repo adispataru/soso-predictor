@@ -37,23 +37,26 @@ public  class Predictor {
 
     @RequestMapping(method = RequestMethod.PUT, path = "/predict/allUsage/{historyStart}/{historyEnd}", consumes = "application/json")
     public void predictAllMachines(@PathVariable long historyStart,@PathVariable long historyEnd){
+        List<TaskUsage> taskUsageList = taskUsageMappingRepository.
+                findByStartTimeGreaterThanAndFinishTimeLessThan(historyStart, historyEnd);
         for(Machine m : machineRepository.findAll()){
             List<Usage> usageList = new ArrayList<Usage>();
-            List<TaskUsage> taskUsageList = taskUsageMappingRepository.
-                    findByMachineIdAndStartTimeLessThan(m.getId(), historyEnd);
+            long time = System.currentTimeMillis();
             for(TaskUsage taskUsage : taskUsageList){
                 //Get list before to avoid repeated interogation
 //            TaskUsage taskUsage = taskUsageMappingRepository.findOne(taskUsageId);
+                if(taskUsage.getMachineId() != m.getId())
+                    continue;
 
                 for (Usage u : taskUsage.getUsageList()) {
                     if (u.getStartTime() < historyStart)
                         continue;
+                    if (u.getEndTime() > historyEnd)
+                      break;
                     usageList.add(u);
                 }
 
             }
-
-
             MachinePrediction prediction = PredictionFactory.predictMachineUsage(usageList);
             prediction.setStartTime(historyEnd * Configuration.TIME_DIVISOR);
             prediction.setEndTime((historyEnd + Configuration.STEP) * Configuration.TIME_DIVISOR);

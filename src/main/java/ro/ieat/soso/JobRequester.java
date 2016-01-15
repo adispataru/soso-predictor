@@ -189,7 +189,7 @@ public class JobRequester {
 
         coalitionClient.deleteCoalitionsFromRepository();
 
-        long initStart = 0, initEnd = 5700;
+        long initStart = 3600, initEnd = 5700;
 
         CoalitionReasoner.appDurationMap = new TreeMap<String, DurationPrediction>();
 
