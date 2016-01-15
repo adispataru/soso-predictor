@@ -1,15 +1,16 @@
 package ro.ieat.soso.util;
 
-import ro.ieat.soso.core.coalitions.Machine;
+import org.springframework.web.client.RestTemplate;
 import ro.ieat.soso.core.coalitions.Usage;
+import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.jobs.TaskHistory;
 import ro.ieat.soso.core.jobs.TaskUsage;
-import ro.ieat.soso.predictor.persistence.RepositoryPool;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Map;
 
 /**
  * Created by adrian on 11.01.2016.
@@ -17,7 +18,9 @@ import java.util.ArrayList;
  */
 public class TaskUsageConqueror {
 
-    public static void map(FileReader fileReader, RepositoryPool machineRepository, long start, long end) throws IOException, InterruptedException {
+    public static RestTemplate template = new RestTemplate();
+
+    public static void map(FileReader fileReader, Map<Long, Job> jobMap, long start, long end) throws IOException, InterruptedException {
 
 
         BufferedReader br = new BufferedReader(fileReader);
@@ -72,36 +75,31 @@ public class TaskUsageConqueror {
             usage.setMaxDisk(maxDisk);
 
 
-            TaskUsage task = new TaskUsage(taskIndex, jobId, machineRepository.jobRepo.get(jobId).getLogicJobName());
+            Job j = jobMap.get(jobId);
+            TaskUsage task = new TaskUsage(taskIndex, jobId, j.getLogicJobName());
             ArrayList<Usage> usages = new ArrayList<Usage>();
             usages.add(usage);
             task.setUsageList(usages);
+            task.setMachineId(machine);
 
-            TaskHistory t = machineRepository.jobRepo.get(jobId).getTaskHistory().get(taskIndex);
+            TaskHistory t = j.getTaskHistory().get(taskIndex);
+
+            task.setStartTime(t.getScheduleTime());
+            task.setFinishTime(t.getFinishTime());
+
             if(t.getTaskUsage() != null) {
                 t.getTaskUsage().getUsageList().add (usage);
             }else{
                 t.setTaskUsage(task);
             }
+            if(t.getMachineId() == 0)
+                t.setMachineId(machine);
+//            String postMachineUsage = "http://localhost:8088/assign/usage/" + machine;
+//            Logger.getLogger("Conquer").info(postMachineUsage);
 
-            Machine m = machineRepository.findOne(machine);
 
-            if(m.getTaskUsageList() != null) {
-                if(m.getTaskUsageList().size() > 0){
-                    //Logger.getLogger("Conquer").info("machine usage size: " + m.getTaskUsageList().size());
-                    for (int i = 0; i < m.getTaskUsageList().size(); i++) {
-                        if (m.getTaskUsageList().get(i).getTaskIndex() == t.getTaskIndex())
-                            m.getTaskUsageList().get(i).getUsageList().add(usage);
-                    }
-                }else{
-                    //Logger.getLogger("Conquer").info("Creating new task usage for machine: " + m.getId());
-                    m.setTaskUsageList(new ArrayList<TaskUsage>());
-                    m.getTaskUsageList().add(t.getTaskUsage());
-                }
-            }
-            machineRepository.save(m);
-
-            machineRepository.timeJobMap.put(machineRepository.jobRepo.get(jobId).getSubmitTime(), jobId);
+            //machineRepository.timeJobMap.put(machineRepository.jobRepo.get(jobId).getSubmitTime(), jobId);
+            jobMap.put(j.getJobId(), j);
 
         }
         br.close();

@@ -10,7 +10,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
  * Created by adrian on 14.01.2016.
  */
 @Configuration
-@EnableMongoRepositories({"ro.ieat.soso.reasoning.controllers.persistence."})
+@EnableMongoRepositories({"ro.ieat.soso.reasoning.controllers.persistence"})
 public class TestConfig extends AbstractMongoConfiguration {
 //    @Autowired
 //    private Environment env;

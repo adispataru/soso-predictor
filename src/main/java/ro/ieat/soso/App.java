@@ -1,34 +1,21 @@
 package ro.ieat.soso;
 
-import org.codehaus.jackson.map.ObjectMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import ro.ieat.soso.core.coalitions.Coalition;
-import ro.ieat.soso.core.coalitions.Machine;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
+import org.springframework.web.client.RestTemplate;
 import ro.ieat.soso.core.config.Configuration;
 import ro.ieat.soso.core.jobs.Job;
-import ro.ieat.soso.core.jobs.ScheduledJob;
 import ro.ieat.soso.core.mappers.JobEventsMapper;
-import ro.ieat.soso.core.mappers.MachineEventsMapper;
 import ro.ieat.soso.core.mappers.TaskEventsMapper;
 import ro.ieat.soso.core.mappers.TaskUsageMapper;
 import ro.ieat.soso.core.prediction.DurationPrediction;
-import ro.ieat.soso.evaluator.Evaluator;
-import ro.ieat.soso.predictor.Predictor;
-import ro.ieat.soso.predictor.persistence.RepositoryPool;
 import ro.ieat.soso.reasoning.CoalitionReasoner;
-import ro.ieat.soso.reasoning.controllers.CoalitionClient;
-import ro.ieat.soso.reasoning.controllers.persistence.CoalitionRepository;
-import ro.ieat.soso.util.MapsUtil;
-import ro.ieat.soso.util.TaskUsageConqueror;
 
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
@@ -37,9 +24,9 @@ import java.util.logging.Logger;
  * Created by adrian on 05.01.2016.
  */
 @SpringBootApplication
+@ComponentScan(basePackages = "ro.ieat.soso")
+@EnableMongoRepositories(basePackages = "ro.ieat.soso.persistence")
 public class App {
-    @Autowired
-    static CoalitionRepository coalitionRepository;
 
     private static Logger LOG = Logger.getLogger(App.class.toString());
 
@@ -56,7 +43,10 @@ public class App {
         //configure(600, 6000);
 
         SpringApplication.run(App.class, args);
-        runIndefinetely();
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.getForObject("http://localhost:8088/app/init/0/5700", String.class);
+        restTemplate.put("http://localhost:8088/app/start", null);
+
 
 
     }
@@ -119,7 +109,7 @@ public class App {
         File[] machineFiles = new File(machineUsagePath).listFiles();
 
         for(File f : machineFiles){
-            Predictor.predictMachineUsage(Long.parseLong(f.getName()), 600, 5400);
+            //Predictor.predictMachineUsage(Long.parseLong(f.getName()), 600, 5400);
         }
 
         Map<Long, Job> jobMap = new TreeMap<Long, Job>();
@@ -134,189 +124,27 @@ public class App {
         for(Job j : jobMap.values()){
 //            if(CoalitionReasoner.appDurationMap.containsKey(j.getLogicJobName()))
 //                continue;
-            Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
+            //Predictor.predictJobRuntime(j.getLogicJobName(), 600, 5400);
         }
 
-        CoalitionReasoner.initCoalitions(5400);
-        Collection<Coalition> cs = coalitionRepository.findAll();
-
-        String coalitionOutputFolder = "./data/coalitions/";
-
-        for(Coalition coalition : cs){
-            System.out.printf("coalition id: %d; coalition size: %d\n", coalition.getId(), coalition.getMachines().size());
-            ObjectMapper objectMapper = new ObjectMapper();
-            File dir = new File(coalitionOutputFolder);
-            if(!dir.exists())
-                dir.mkdirs();
-
-
-            FileWriter f = new FileWriter(coalitionOutputFolder + coalition.getId());
-            f.write(objectMapper.writeValueAsString(coalition));
-            f.close();
-        }
-
-    }
-
-    public static void runIndefinetely() throws Exception {
-
-//        Configuration.JOB_EVENTS_PATH = "/home/adrian/work/ieat/CloudLightning/soso-predictor/" + Configuration.JOB_EVENTS_PATH;
-//        Configuration.TASK_EVENTS_PATH = "/home/adrian/work/ieat/CloudLightning/soso-predictor/" + Configuration.TASK_EVENTS_PATH;
-//        Configuration.TASK_USAGE_PATH = "/home/adrian/work/ieat/CloudLightning/soso-predictor/" + Configuration.TASK_USAGE_PATH;
-//        Configuration.MACHINE_EVENTS = "/home/adrian/work/ieat/CloudLightning/soso-predictor/" + Configuration.MACHINE_EVENTS;
-
-        long initStart = 0, initEnd = 5700;
-        Long maxTime = Long.MAX_VALUE / Configuration.TIME_DIVISOR;
-        Map<Long, Job> jobMap = new TreeMap<Long, Job>();
-
-        long time = System.currentTimeMillis();
-
-        for(File f : new File(Configuration.JOB_EVENTS_PATH).listFiles()) {
-            JobEventsMapper.map(new FileReader(f), jobMap, initStart, maxTime);
-        }
-
-        LOG.info("Finished job events mapping");
-        for(File f : new File(Configuration.TASK_EVENTS_PATH).listFiles()) {
-            TaskEventsMapper.map(new FileReader(f), jobMap, initStart, maxTime);
-        }
-
-        LOG.info("Finished task events mapping");
-
-        RepositoryPool.getInstance().jobRepo = jobMap;
-
-
-        //Make use of machine_events file to populate RepositoryPool;
-        LOG.info("Starting machine mapping");
-        MachineEventsMapper.map(new FileReader(Configuration.MACHINE_EVENTS), 0, maxTime);
-        LOG.info("Done.");
-
-        LOG.info("Generating machines based on events file");
-        for(Long id : MachineEventsMapper.MACHINES.keySet()){
-            Machine m = new Machine(id, MachineEventsMapper.MACHINES.get(id).getKey(),
-                    MachineEventsMapper.MACHINES.get(id).getValue());
-            RepositoryPool.getInstance().save(m);
-        }
-
-
-        LOG.info("Starting task usage mapping");
-        File dir = new File(Configuration.TASK_USAGE_PATH);
-        if(dir.isDirectory()){
-            int i = 1;
-            for(File f : dir.listFiles()){
-                TaskUsageConqueror.map(new FileReader(f), RepositoryPool.getInstance(), initStart, maxTime);
-                LOG.info("Processed " + i + " of " + dir.listFiles().length + " files...");
-                ++i;
-            }
-        }else{
-            TaskUsageMapper.map(new FileReader(Configuration.TASK_USAGE_PATH), jobMap, initStart, initEnd);
-        }
-
-        LOG.info("Done.");
-
-        long time2 = System.currentTimeMillis();
-        LOG.info("Reading duration: " + (time2 - time));
-
-//        String machineUsagePath = "./data/output/machine_usage/";
+        //CoalitionReasoner.initCoalitions(5400);
+//        Collection<Coalition> cs = coalitionRepository.findAll();
 //
-//        File[] machineFiles = new File(machineUsagePath).listFiles();
+//        String coalitionOutputFolder = "./data/coalitions/";
 //
-//        LOG.info("Reading and predicting machine usage from files...");
+//        for(Coalition coalition : cs){
+//            System.out.printf("coalition id: %d; coalition size: %d\n", coalition.getId(), coalition.getMachines().size());
+//            ObjectMapper objectMapper = new ObjectMapper();
+//            File dir = new File(coalitionOutputFolder);
+//            if(!dir.exists())
+//                dir.mkdirs();
 //
-//        for(File f : machineFiles){
-//            Machine m = MachineUsageMapper.readOne(f, initStart, initEnd);
-//            RepositoryPool.save(m);
-//            Predictor.predictMachineUsage(Long.parseLong(f.getName()), initStart, initEnd);
+//
+//            FileWriter f = new FileWriter(coalitionOutputFolder + coalition.getId());
+//            f.write(objectMapper.writeValueAsString(coalition));
+//            f.close();
 //        }
-//
-//        LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time2));
-
-        CoalitionReasoner.appDurationMap = new TreeMap<String, DurationPrediction>();
-
-
-        time = System.currentTimeMillis();
-        LOG.info("Predicting machine usage...");
-        for(Machine m : RepositoryPool.getInstance().findAll()){
-            Predictor.predictMachineUsage(m.getId(), initStart, initEnd);
-        }
-
-        LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
-
-        time = System.currentTimeMillis();
-        LOG.info("Initializing coalitions...");
-        CoalitionReasoner.initCoalitions(initEnd);
-        for(Coalition c : coalitionRepository.findAll()){
-            LOG.info("Id: " + c.getId());
-        }
-
-
-
-        LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
-
-
-        RepositoryPool.getInstance().jobRepo = MapsUtil.sortJobMaponSubmitTime(jobMap);
-
-        Iterator<Map.Entry<Long, Job>> iterator = RepositoryPool.getInstance().jobRepo.entrySet().iterator();
-        if(RepositoryPool.getInstance().jobRepo == null)
-            RepositoryPool.getInstance().jobRepo = new TreeMap<Long, Job>();
-        while (iterator.hasNext()){
-            Job j = iterator.next().getValue();
-            if(j.getSubmitTime() == 0)
-                continue;
-            RepositoryPool.getInstance().jobRepo.put(j.getJobId(), j);
-            Predictor.predictJobRuntime(j.getLogicJobName(), initStart, initEnd-300);
-            if(j.getSubmitTime() >= (initEnd) * Configuration.TIME_DIVISOR){
-                CoalitionClient.sendJobRequest(new Job(j, true));
-                LOG.info("For job " + j.getJobId() + " status is " + j.getStatus() + " at time " + j.getSubmitTime());
-                break;
-            }
-
-        }
-
-
-        time = initEnd + Configuration.STEP;
-        long experimentEndTime = 7000;
-
-        while (iterator.hasNext()){
-
-            Job j = iterator.next().getValue();
-            LOG.info("For job " + j.getJobId() + " status is " + j.getStatus() + " at time " + j.getSubmitTime());
-
-            if(j.getTaskHistory().get(0L).getTaskUsage() == null)
-                continue;
-
-            if(j.getStatus().equals("finish")) {
-                if (j.getSubmitTime() <= (time) * Configuration.TIME_DIVISOR) {
-                    Predictor.predictJobRuntime(j.getLogicJobName(), initStart, time);
-                    ScheduledJob scheduledJob = CoalitionClient.sendJobRequest(new Job(j, true));
-                    if (scheduledJob != null) {
-                        Evaluator.evaluate(scheduledJob);
-                    } else {
-
-                        LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
-                    }
-                } else {
-                    CoalitionReasoner.updateAll(time);
-                    Predictor.predictJobRuntime(j.getLogicJobName(), initStart, time);
-                    ScheduledJob scheduledJob = CoalitionClient.sendJobRequest(new Job(j, true));
-                    if (scheduledJob != null) {
-                        Evaluator.evaluate(scheduledJob);
-                    } else {
-
-                        LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
-                    }
-
-                    if (experimentEndTime - time > Configuration.STEP) {
-                        time += Configuration.STEP;
-                    } else {
-                        break;
-                    }
-                }
-            } else{
-                //TODO Log this to machine usage...
-                LOG.info("Not sending " + j.getJobId() + " because status is " + j.getStatus() + " at time " + j.getSubmitTime());
-            }
-
-        }
-
 
     }
+
 }

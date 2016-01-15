@@ -14,14 +14,15 @@ import java.util.logging.Logger;
  * CoalitionClient is responsible for communication with the consumer of coalitions, providing methods to reason
  * the JobMatcher with coalitions status.
  */
-public class CoalitionClient {
+public class CoalitionClient{
+
 
     private static RestTemplate restTemplate;
-    private static String coalitionTargetUrl = "http://localhost:8090/coalition";
+    private static String coalitionTargetUrl = "http://localhost:8088/coalitions";
     private static String jobRequestTargetUrl = "http://localhost:8090/job";
     private static final Logger LOG = Logger.getLogger("CoalitionClient");
 
-    public static void sendCoalition(Coalition c){
+    public void sendCoalition(Coalition c){
         restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -29,7 +30,7 @@ public class CoalitionClient {
 
     }
 
-    public static ScheduledJob sendJobRequest(Job j){
+    public ScheduledJob sendJobRequest(Job j){
         LOG.info("Job to send:\n" + j.toString());
         restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
@@ -40,5 +41,10 @@ public class CoalitionClient {
             Logger.getLogger("JobRequester").info("event: " + s.getJobId());
 
         return s;
+    }
+
+    public void deleteCoalitionsFromRepository(){
+        restTemplate = new RestTemplate();
+        restTemplate.delete(coalitionTargetUrl);
     }
 }

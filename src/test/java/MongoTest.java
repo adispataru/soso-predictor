@@ -9,7 +9,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import ro.ieat.soso.App;
 import ro.ieat.soso.core.coalitions.Coalition;
 import ro.ieat.soso.core.coalitions.Machine;
-import ro.ieat.soso.reasoning.controllers.persistence.CoalitionRepository;
+import ro.ieat.soso.persistence.CoalitionRepository;
 import util.TestConfig;
 
 import java.util.ArrayList;
@@ -30,9 +30,10 @@ public class MongoTest {
     public void test(){
         Coalition c = new Coalition();
         c.setLogicJobName("ala bala");
-        c.setMachines(new ArrayList<Machine>());
+        c.setMachines(new ArrayList<Long>());
         Machine m = new Machine(1, 0.5, 0.5);
-        c.getMachines().add(m);
+
+        c.getMachines().add(m.getId());
         coalitionRepository.save(c);
         Coalition c2 = coalitionRepository.findAll().get(0);
         Assert.assertEquals(c2.getLogicJobName(), c.getLogicJobName());
