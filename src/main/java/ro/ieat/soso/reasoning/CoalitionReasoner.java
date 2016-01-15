@@ -21,10 +21,7 @@ import ro.ieat.soso.predictor.prediction.PredictionFactory;
 import ro.ieat.soso.reasoning.controllers.CoalitionClient;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -60,6 +57,7 @@ public class CoalitionReasoner {
 
         int i = 1;
         long size = machineRepository.count();
+
         for(Machine m : machineRepository.findAll()) {
             reason(m, coalitionMap, time);
 //            LOG.info("Machine number: " + i);
@@ -108,54 +106,55 @@ public class CoalitionReasoner {
         Coalition coalition = new Coalition();
         coalition.setCurrentETA(PredictionFactory.zeroDurationPrediction());
 
+
         //next lines are commented because I already took care of this during prediction of job times.
         long minJobRunTime = Long.MAX_VALUE;
 //        LOG.info("Tasks in machine : " + machineProperties.getTaskUsageList().size());
 //        LOG.info("Current jobs  : " + currentJobs.size());
 
-        List<TaskUsage> taskUsageList = taskUsageMappingRepository.
-                findByMachineIdAndStartTimeLessThan(machineProperties.getId(), time);
-//        LOG.info("Task usage list size " + taskUsageList.size());
-        for(TaskUsage taskUsage : taskUsageList){
-            //Get list before to avoid repeated interogation
-//            TaskUsage taskUsage = taskUsageMappingRepository.findOne(taskUsageId);
-            Long jobId = taskUsage.getJobId();
-            Job job = jobRepository.findOne(jobId);
-            if(job == null)
-                continue;
-            //System.out.println(jobId + "\t" + machineProperties.getMachineId());
-            long size = job.getTaskHistory().size();
-
-//            LOG.info("Size in jobMap: " + size);
-            if(size != 0 && size < minSize){
-                minSize = size;
-            }
-
-            if(coalition.getJobs() == null){
-                coalition.setJobs(new TreeMap<String, Long>());
-            }
-
-            String logJobName = job.getLogicJobName();
-
-            if(appDurationMap.containsKey(logJobName)) {
-                //long maxEndTime = currentJobs.get(jobId).getScheduleTime() + appDurationMap.get(logJobName).getMax();
-
-                coalition.getJobs().put(logJobName, appDurationMap.get(logJobName).getMax());
-
-                if (minJobRunTime > appDurationMap.get(logJobName).getMin()) {
-                    coalition.setCurrentETA(appDurationMap.get(logJobName));
-                    coalition.getCurrentETA().setMax(coalition.getCurrentETA().getMax() + job.getScheduleTime());
-                    coalition.getCurrentETA().setMin(coalition.getCurrentETA().getMin() + job.getScheduleTime());
-                    coalition.getCurrentETA().setAverage(coalition.getCurrentETA().getAverage() + job.getScheduleTime());
-                    coalition.getCurrentETA().setHistogram(coalition.getCurrentETA().getHistogram() + job.getScheduleTime());
-                    minJobRunTime = appDurationMap.get(logJobName).getMin();
-                }
-            }
-
-
-
-
-        }
+//        List<TaskUsage> taskUsageList = taskUsageMappingRepository.
+//                findByMachineIdAndStartTimeLessThan(machineProperties.getId(), time);
+////        LOG.info("Task usage list size " + taskUsageList.size());
+//        for(TaskUsage taskUsage : taskUsageList){
+//            //Get list before to avoid repeated interogation
+////            TaskUsage taskUsage = taskUsageMappingRepository.findOne(taskUsageId);
+//            Long jobId = taskUsage.getJobId();
+//            Job job = jobRepository.findOne(jobId);
+//            if(job == null)
+//                continue;
+//            //System.out.println(jobId + "\t" + machineProperties.getMachineId());
+//            long size = job.getTaskHistory().size();
+//
+////            LOG.info("Size in jobMap: " + size);
+//            if(size != 0 && size < minSize){
+//                minSize = size;
+//            }
+//
+//            if(coalition.getJobs() == null){
+//                coalition.setJobs(new TreeMap<String, Long>());
+//            }
+//
+//            String logJobName = job.getLogicJobName();
+//
+//            if(appDurationMap.containsKey(logJobName)) {
+//                //long maxEndTime = currentJobs.get(jobId).getScheduleTime() + appDurationMap.get(logJobName).getMax();
+//
+//                coalition.getJobs().put(logJobName, appDurationMap.get(logJobName).getMax());
+//
+//                if (minJobRunTime > appDurationMap.get(logJobName).getMin()) {
+//                    coalition.setCurrentETA(appDurationMap.get(logJobName));
+//                    coalition.getCurrentETA().setMax(coalition.getCurrentETA().getMax() + job.getScheduleTime());
+//                    coalition.getCurrentETA().setMin(coalition.getCurrentETA().getMin() + job.getScheduleTime());
+//                    coalition.getCurrentETA().setAverage(coalition.getCurrentETA().getAverage() + job.getScheduleTime());
+//                    coalition.getCurrentETA().setHistogram(coalition.getCurrentETA().getHistogram() + job.getScheduleTime());
+//                    minJobRunTime = appDurationMap.get(logJobName).getMin();
+//                }
+//            }
+//
+//
+//
+//
+//        }
 
         if(MachineEventsMapper.MACHINES.containsKey(machineProperties.getId())) {
             machineProperties.setCpu(MachineEventsMapper.MACHINES.get(machineProperties.getId()).getKey());
@@ -194,6 +193,7 @@ public class CoalitionReasoner {
 
 //        LOG.info("Min size for coalition " + minSize);
 
+        minSize = new Random(System.currentTimeMillis()).nextInt(100);
         if (!coalitionMap.containsKey(minSize)){
             coalitionMap.put(minSize, coalition);
         }else {
