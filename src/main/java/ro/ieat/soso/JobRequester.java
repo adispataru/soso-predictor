@@ -100,11 +100,11 @@ public class JobRequester {
                     break;
                 LOG.info("Reading from part " + i);
                 LOG.info("Jobs...");
-                JobEventsMapper.map(new FileReader(jef), jobMap, initStart, initEnd);
+                JobEventsMapper.map(new FileReader(jef), jobMap, initStart, maxTime);
                 LOG.info("Tasks...");
-                TaskEventsMapper.map(new FileReader(tef), jobMap, initStart, initEnd);
+                TaskEventsMapper.map(new FileReader(tef), jobMap, initStart, maxTime);
                 LOG.info("Tasks usage...");
-                TaskUsageConqueror.map(new FileReader(tuf), jobMap, initStart, initEnd);
+                TaskUsageConqueror.map(new FileReader(tuf), jobMap, initStart, maxTime);
                 LOG.info("Done.");
 
                 LOG.info("Cleaning up finished jobs");
@@ -132,7 +132,7 @@ public class JobRequester {
                         }
                     }else{
                         LOG.severe("Not saving job " + j.getJobId() + " because it has " + j.getTaskHistory().size() + " tasks.");
-                        iterator.remove();
+                        //iterator.remove();
                     }
                     if(j.getStatus().equals("finish"))
                         iterator.remove();
@@ -245,11 +245,10 @@ public class JobRequester {
         long experimentEndTime = 7000;
         while(time <= experimentEndTime) {
             LOG.info("Searching jobs between " + initEnd + " and " + time);
-            Iterator<Job> iterator = jobRepository.findBySubmitTimeBetween(
-                    initEnd * Configuration.TIME_DIVISOR, time * Configuration.TIME_DIVISOR).iterator();
 
-            while(iterator.hasNext()) {
-                Job j = iterator.next();
+            for (Job j : jobRepository.findBySubmitTimeBetween(
+                    initEnd * Configuration.TIME_DIVISOR, time * Configuration.TIME_DIVISOR)) {
+
                 LOG.info("For job " + j.getJobId() + " status is " + j.getStatus() + " at time " + j.getSubmitTime());
 
                 if (j.getTaskHistory().get(0L).getTaskUsage() == null)
@@ -258,7 +257,7 @@ public class JobRequester {
                 if (j.getStatus().equals("finish")) {
                     if (j.getSubmitTime() <= (time) * Configuration.TIME_DIVISOR) {
                         //Predictor.predictJobRuntime(j.getLogicJobName(), initStart, time);
-                        ScheduledJob scheduledJob = coalitionClient.sendJobRequest(new Job(j, true));
+                        ScheduledJob scheduledJob = coalitionClient.sendJobRequest(new Job(j, false));
                         if (scheduledJob != null) {
                             Evaluator.evaluate(scheduledJob);
                         } else {

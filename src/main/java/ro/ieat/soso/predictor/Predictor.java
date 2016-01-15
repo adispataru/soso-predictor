@@ -108,7 +108,7 @@ public  class Predictor {
         return prediction;
     }
 
-    @RequestMapping(method = RequestMethod.POST, path = "/predict/job/{historyEnd}", consumes = "application/json")
+    @RequestMapping(method = RequestMethod.POST, path = "/predict/job/{logicJobName/{historyEnd}", consumes = "application/json")
     public DurationPrediction predictJobRuntime(@PathVariable final String logicJobName, long historyEnd) throws IOException {
 
         String jobsPath = "./data/s_jobs.csv";
