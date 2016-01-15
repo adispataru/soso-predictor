@@ -271,6 +271,8 @@ public class App {
 
         }
 
+        //TODO Check if machine usage is consistent with data received from matcher.
+        //TODO Avoid machines having both GOOGLE Usage and Matcher USAGE.
 
         time = initEnd + Configuration.STEP;
         long experimentEndTime = 7000;
