@@ -19,7 +19,6 @@ import ro.ieat.soso.core.mappers.JobEventsMapper;
 import ro.ieat.soso.core.mappers.MachineEventsMapper;
 import ro.ieat.soso.core.mappers.TaskEventsMapper;
 import ro.ieat.soso.core.prediction.DurationPrediction;
-import ro.ieat.soso.evaluator.Evaluator;
 import ro.ieat.soso.persistence.JobRepository;
 import ro.ieat.soso.persistence.MachineRepository;
 import ro.ieat.soso.persistence.TaskUsageMappingRepository;
@@ -243,7 +242,17 @@ public class JobRequester {
 
         time = initEnd + Configuration.STEP;
         long experimentEndTime = 7000;
+        boolean updateCoalition = false;
         while(time <= experimentEndTime) {
+            if(updateCoalition){
+                LOG.info("Predicting machine usage...");
+                predictionPath = "http://localhost:8088/predict/allUsage/" + initStart + "/" + initEnd;
+                template.put(predictionPath, 1);
+                LOG.info("Updating coalitions");
+                template.put("http://localhost:8088/coalitions/update/" + initEnd, 1);
+                LOG.info("Done.");
+            }
+
             LOG.info("Searching jobs between " + initEnd + " and " + time);
 
             for (Job j : jobRepository.findBySubmitTimeBetween(
@@ -259,7 +268,7 @@ public class JobRequester {
                         //Predictor.predictJobRuntime(j.getLogicJobName(), initStart, time);
                         ScheduledJob scheduledJob = coalitionClient.sendJobRequest(new Job(j, false));
                         if (scheduledJob != null) {
-                            Evaluator.evaluate(scheduledJob);
+                            LOG.info("Scheduled job " + scheduledJob.getJobId());
                         } else {
 
                             LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
@@ -270,7 +279,7 @@ public class JobRequester {
                         //Predictor.predictJobRuntime(j.getLogicJobName(), initStart, time);
                         ScheduledJob scheduledJob = coalitionClient.sendJobRequest(new Job(j, true));
                         if (scheduledJob != null) {
-                            Evaluator.evaluate(scheduledJob);
+                            LOG.info("Scheduled job " + scheduledJob.getJobId());
                         } else {
 
                             LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
@@ -290,7 +299,11 @@ public class JobRequester {
 
             initEnd = time;
             time += Configuration.STEP;
+            template.put("http://localhost:8088/evaluate/" + initEnd, 1);
+            updateCoalition = true;
         }
+        LOG.exiting("experiment", "JobRequester");
+        LOG.info("Success!");
 
 
     }

@@ -168,8 +168,8 @@ public class CoalitionReasoner {
     }
 
 
-    @RequestMapping(method = RequestMethod.PUT, path = "/coalitions/update")
-    public void updateAll(long time){
+    @RequestMapping(method = RequestMethod.PUT, path = "/coalitions/update/{time}")
+    public void updateAll(@PathVariable long time){
         for(Coalition c : coalitionRepository.findAll()){
             reason(c, time);
             c = coalitionRepository.findOne(c.getId());

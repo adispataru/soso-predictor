@@ -3,7 +3,6 @@ package ro.ieat.soso.predictor;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.coalitions.Usage;
 import ro.ieat.soso.core.config.Configuration;
@@ -108,11 +107,9 @@ public  class Predictor {
         return prediction;
     }
 
-    @RequestMapping(method = RequestMethod.POST, path = "/predict/job/{logicJobName/{historyEnd}", consumes = "application/json")
-    public DurationPrediction predictJobRuntime(@PathVariable final String logicJobName, long historyEnd) throws IOException {
+    @RequestMapping(method = RequestMethod.GET, path = "/predict/job/{logicJobName}/{historyEnd}")
+    public DurationPrediction predictJobRuntime(@PathVariable final String logicJobName, Long historyEnd) throws IOException {
 
-        String jobsPath = "./data/s_jobs.csv";
-        RestTemplate template = new RestTemplate();
 
         List<Job> jobs = jobRepository.findByLogicJobNameAndSubmitTimeLessThan(logicJobName, historyEnd);
         List<Long> durationList = new ArrayList<Long>();
