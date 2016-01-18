@@ -38,7 +38,7 @@ public  class Predictor {
         List<TaskUsage> taskUsageList = taskUsageMappingRepository.
                 findByStartTimeGreaterThanAndFinishTimeLessThan(historyStart, historyEnd);
         for(Machine m : machineRepository.findAll()){
-            List<TaskUsage> usageList = taskUsageList.stream().filter(t -> t.getAssignedMachineId() == m.getId() ||
+            List<TaskUsage> usageList = taskUsageList.stream().filter(t -> t.getAssignedMachineId().longValue() == m.getId() ||
                     (t.getAssignedMachineId() == 0 && t.getMachineId().equals(m.getId())))
                     .collect(Collectors.toList());
 
