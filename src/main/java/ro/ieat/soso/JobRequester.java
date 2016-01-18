@@ -88,7 +88,7 @@ public class JobRequester {
         if(jobRepository.count() == 0) {
 
             Map<Long, Job> jobMap = new TreeMap<Long, Job>();
-            for(int i = 0 ; i < 2; i++){
+            for(int i = 0 ; i < 1; i++){
                 String jobEvents = Configuration.JOB_EVENTS_PATH + String.format("part-%05d-of-00500.csv", i);
                 String taskEvents = Configuration.TASK_EVENTS_PATH + String.format("part-%05d-of-00500.csv", i);
                 String taskUsages = Configuration.TASK_USAGE_PATH + String.format("part-%05d-of-00500.csv", i);
@@ -103,11 +103,16 @@ public class JobRequester {
                 LOG.info("Tasks...");
                 TaskEventsMapper.map(new FileReader(tef), jobMap, initStart, maxTime);
                 LOG.info("Tasks usage...");
-                List<TaskUsage> taskUsageList = TaskUsageMapper.map(new FileReader(tuf), initStart, maxTime);
+                List<TaskUsage> taskUsageList = TaskUsageMapper.map(new FileReader(tuf), initStart, initEnd);
                 LOG.info("Done.");
-                taskUsageMappingRepository.save(taskUsageList);
-                taskUsageList = null;
-                System.gc();
+                LOG.info("Task usage records: " + taskUsageList.size());
+                LOG.info("First task time: " + taskUsageList.get(0).getEndTime());
+                LOG.info("Last task time: " + taskUsageList.get(taskUsageList.size() -1).getEndTime());
+
+                for(int j = 0; j < 15; j++){
+                    taskUsageMappingRepository.save(taskUsageList.subList(j * (taskUsageList.size()/15), (j+1) * taskUsageList.size() / 15));
+                }
+
 
                 LOG.info("Cleaning up finished jobs");
                 Iterator<Map.Entry<Long, Job>> iterator = jobMap.entrySet().iterator();
@@ -137,6 +142,7 @@ public class JobRequester {
     public void jobRequestFlow(@PathVariable long startTime, @PathVariable long endTime, @PathVariable int historySize) throws Exception{
 
         coalitionClient.deleteCoalitionsFromRepository();
+
 
         long initStart = startTime - Configuration.STEP * historySize, initEnd = startTime;
         PredictionMethod machinePredictionMethod = new PessimisticTaskUsagePrediction();

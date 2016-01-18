@@ -4,6 +4,7 @@ package ro.ieat.soso.predictor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ro.ieat.soso.core.coalitions.Machine;
+import ro.ieat.soso.core.config.Configuration;
 import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.jobs.TaskUsage;
 import ro.ieat.soso.core.prediction.Duration;
@@ -36,7 +37,8 @@ public  class Predictor {
     @RequestMapping(method = RequestMethod.PUT, path = "/predict/allUsage/{historyStart}/{historyEnd}", consumes = "application/json")
     public void predictAllMachines(@PathVariable long historyStart,@PathVariable long historyEnd){
         List<TaskUsage> taskUsageList = taskUsageMappingRepository.
-                findByStartTimeGreaterThanAndEndTimeLessThan(historyStart, historyEnd);
+                findByStartTimeGreaterThanAndEndTimeLessThan(historyStart * Configuration.TIME_DIVISOR - 1,
+                        historyEnd * Configuration.TIME_DIVISOR);
 
         for(Machine m : machineRepository.findAll()){
             List<TaskUsage> usageList = taskUsageList.stream().filter(t -> t.getAssignedMachineId().longValue() == m.getId() ||
