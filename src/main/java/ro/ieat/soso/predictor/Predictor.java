@@ -37,24 +37,25 @@ public  class Predictor {
         List<TaskUsage> taskUsageList = taskUsageMappingRepository.
                 findByStartTimeGreaterThanAndFinishTimeLessThan(historyStart, historyEnd);
         for(Machine m : machineRepository.findAll()){
-            List<TaskUsage> usageList = taskUsageList.stream().filter(t -> t.getMachineId().equals(m.getId())).collect(
-                    Collectors.toList()
-            );
+            List<TaskUsage> usageList = taskUsageList.stream().filter(t -> t.getAssignedMachineId() == m.getId() ||
+                    (t.getAssignedMachineId() == 0 && t.getMachineId().equals(m.getId())))
+                    .collect(Collectors.toList());
+
             List<TaskUsage> queue = new LinkedList<>();
             int processed = 1;
             List<TaskUsage> predictedTaskUsageList = new ArrayList<>();
             int lastIndex = 1;
-            TaskUsage lastTaskUsage = taskUsageList.get(0);
+            TaskUsage lastTaskUsage = usageList.get(0);
             queue.add(lastTaskUsage);
-            while(processed < taskUsageList.size()){
-                TaskUsage taskUsage = taskUsageList.get(lastIndex);
+            while(processed < usageList.size()){
+                TaskUsage taskUsage = usageList.get(lastIndex);
                 if(taskUsage.getJobId() == lastTaskUsage.getJobId() &&
                         taskUsage.getTaskIndex() == lastTaskUsage.getTaskIndex()){
                     queue.add(taskUsage);
 
                 }else{
                     if(!queue.isEmpty()){
-                        TaskUsage predicted = (TaskUsage) PredictionFactory.getPredictionMethod("taskUsage").predict(queue);
+                        TaskUsage predicted = (TaskUsage) PredictionFactory.getPredictionMethod("machine").predict(queue);
                         predictedTaskUsageList.add(predicted);
                         queue.clear();
                     }
@@ -88,24 +89,28 @@ public  class Predictor {
 
         List<TaskUsage> taskUsageList = taskUsageMappingRepository.
                 findByStartTimeGreaterThanAndFinishTimeLessThan(historyStart, historyEnd);
-        List<TaskUsage> usageList = taskUsageList.stream().filter(t -> t.getMachineId().equals(m.getId())).collect(
-                Collectors.toList()
-        );
+
+        //only take into account tasks that were scheduled on this machine or were monitored here and haven't
+        //been rescheduled.
+
+        List<TaskUsage> usageList = taskUsageList.stream().filter(t -> t.getAssignedMachineId() == m.getId() ||
+                (t.getAssignedMachineId() == 0 && t.getMachineId().equals(m.getId())))
+                .collect(Collectors.toList());
         List<TaskUsage> queue = new LinkedList<>();
         int processed = 1;
         List<TaskUsage> predictedTaskUsageList = new ArrayList<>();
         int lastIndex = 1;
-        TaskUsage lastTaskUsage = taskUsageList.get(0);
+        TaskUsage lastTaskUsage = usageList.get(0);
         queue.add(lastTaskUsage);
-        while(processed < taskUsageList.size()){
-            TaskUsage taskUsage = taskUsageList.get(lastIndex);
+        while(processed < usageList.size()){
+            TaskUsage taskUsage = usageList.get(lastIndex);
             if(taskUsage.getJobId() == lastTaskUsage.getJobId() &&
                     taskUsage.getTaskIndex() == lastTaskUsage.getTaskIndex()){
                 queue.add(taskUsage);
 
             }else{
                 if(!queue.isEmpty()){
-                    TaskUsage predicted = (TaskUsage) PredictionFactory.getPredictionMethod("taskUsage").predict(queue);
+                    TaskUsage predicted = (TaskUsage) PredictionFactory.getPredictionMethod("machine").predict(queue);
                     predictedTaskUsageList.add(predicted);
                     queue.clear();
                 }
