@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RestController;
 import ro.ieat.soso.core.coalitions.Coalition;
 import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.mappers.MachineEventsMapper;
-import ro.ieat.soso.core.prediction.Duration;
 import ro.ieat.soso.persistence.CoalitionRepository;
 import ro.ieat.soso.persistence.JobRepository;
 import ro.ieat.soso.persistence.MachineRepository;
@@ -102,7 +101,7 @@ public class CoalitionReasoner {
 
         long minSize;
         Coalition coalition = new Coalition();
-        coalition.setCurrentETA(new Duration(0));
+        coalition.setCurrentETA(0L);
         coalition.setConfidenceLevel(.0);
 
         if(MachineEventsMapper.MACHINES.containsKey(machineProperties.getId())) {
@@ -151,7 +150,7 @@ public class CoalitionReasoner {
         for(Long m : coalition.getMachines()){
             Machine mp = machineRepository.findOne(m);
 
-            if(mp.getETA().longValue() > coalition.getCurrentETA().longValue())
+            if(mp.getETA() > coalition.getCurrentETA())
                 coalition.setCurrentETA(mp.getETA());
 
             //Check availability of machine

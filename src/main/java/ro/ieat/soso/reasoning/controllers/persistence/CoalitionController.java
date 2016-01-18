@@ -18,13 +18,14 @@ import ro.ieat.soso.persistence.CoalitionRepository;
 public class CoalitionController {
     @Autowired
     CoalitionRepository coalitionRepository;
-    private RestTemplate restTemplate;
-    private static String coalitionTargetUrl = "http://localhost:8090/coalition";
+    public static String coalitionTargetUrl = "http://localhost:8090/coalition";
 
     @RequestMapping(method = RequestMethod.POST, path = "/coalitions", consumes = "application/json")
     public Coalition updateCoalition(@RequestBody Coalition c){
         coalitionRepository.save(c);
-        restTemplate = new RestTemplate();
+
+        //send to coalition matcher
+        RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         restTemplate.postForObject(coalitionTargetUrl, c, Coalition.class, headers);

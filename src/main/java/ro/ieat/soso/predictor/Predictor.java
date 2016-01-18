@@ -36,7 +36,8 @@ public  class Predictor {
     @RequestMapping(method = RequestMethod.PUT, path = "/predict/allUsage/{historyStart}/{historyEnd}", consumes = "application/json")
     public void predictAllMachines(@PathVariable long historyStart,@PathVariable long historyEnd){
         List<TaskUsage> taskUsageList = taskUsageMappingRepository.
-                findByStartTimeGreaterThanAndFinishTimeLessThan(historyStart, historyEnd);
+                findByStartTimeGreaterThanAndEndTimeLessThan(historyStart, historyEnd);
+
         for(Machine m : machineRepository.findAll()){
             List<TaskUsage> usageList = taskUsageList.stream().filter(t -> t.getAssignedMachineId().longValue() == m.getId() ||
                     (t.getAssignedMachineId() == 0 && t.getMachineId().equals(m.getId())))
@@ -80,7 +81,9 @@ public  class Predictor {
             Double availableMem = m.getMemory() - m.getUsagePrediction().getMaxMemory();
 
             if(availableCPU > THRESHOLD * m.getCpu() && availableMem > THRESHOLD * m.getMemory()){
-                m.setETA(new Duration(machineUsage.getStartTime()));
+                m.setETA(machineUsage.getStartTime());
+            }else{
+                m.setETA(Long.MAX_VALUE);
             }
             machineRepository.save(m);
         }
@@ -95,7 +98,7 @@ public  class Predictor {
 
 
         List<TaskUsage> taskUsageList = taskUsageMappingRepository.
-                findByStartTimeGreaterThanAndFinishTimeLessThan(historyStart, historyEnd);
+                findByStartTimeGreaterThanAndEndTimeLessThan(historyStart, historyEnd);
 
         //only take into account tasks that were scheduled on this machine or were monitored here and haven't
         //been rescheduled.
@@ -141,7 +144,7 @@ public  class Predictor {
         Double availableMem = m.getMemory() - m.getUsagePrediction().getMaxMemory();
 
         if(availableCPU > THRESHOLD * m.getCpu() && availableMem > THRESHOLD * m.getMemory()){
-            m.setETA(new Duration(machineUsage.getStartTime()));
+            m.setETA(machineUsage.getStartTime());
         }
         machineRepository.save(m);
 
@@ -163,11 +166,7 @@ public  class Predictor {
                 durationList.add(duration);
         }
 
-        Duration duration = (Duration) PredictionFactory.getPredictionMethod("job").predict(durationList);
-//        if(duration != null) {
-//            JobRuntimePredictionController.updateJobDuration(logicJobName, duration);
-//        }
-        return duration;
+        return (Duration) PredictionFactory.getPredictionMethod("job").predict(durationList);
     }
 
 }

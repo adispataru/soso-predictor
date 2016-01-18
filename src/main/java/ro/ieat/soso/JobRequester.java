@@ -2,8 +2,6 @@ package ro.ieat.soso;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -13,23 +11,25 @@ import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.config.Configuration;
 import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.jobs.ScheduledJob;
-import ro.ieat.soso.core.jobs.TaskHistory;
 import ro.ieat.soso.core.jobs.TaskUsage;
 import ro.ieat.soso.core.mappers.JobEventsMapper;
 import ro.ieat.soso.core.mappers.MachineEventsMapper;
 import ro.ieat.soso.core.mappers.TaskEventsMapper;
-import ro.ieat.soso.core.prediction.DurationPrediction;
+import ro.ieat.soso.core.mappers.TaskUsageMapper;
+import ro.ieat.soso.core.prediction.PredictionMethod;
 import ro.ieat.soso.persistence.JobRepository;
 import ro.ieat.soso.persistence.MachineRepository;
 import ro.ieat.soso.persistence.TaskUsageMappingRepository;
-import ro.ieat.soso.reasoning.CoalitionReasoner;
+import ro.ieat.soso.predictor.prediction.PredictionFactory;
+import ro.ieat.soso.predictor.prediction.duration.PessimisticDurationPrediction;
+import ro.ieat.soso.predictor.prediction.taskusage.PessimisticTaskUsagePrediction;
 import ro.ieat.soso.reasoning.controllers.CoalitionClient;
-import ro.ieat.soso.util.TaskUsageConqueror;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
@@ -103,32 +103,20 @@ public class JobRequester {
                 LOG.info("Tasks...");
                 TaskEventsMapper.map(new FileReader(tef), jobMap, initStart, maxTime);
                 LOG.info("Tasks usage...");
-                TaskUsageConqueror.map(new FileReader(tuf), jobMap, initStart, maxTime);
+                List<TaskUsage> taskUsageList = TaskUsageMapper.map(new FileReader(tuf), initStart, maxTime);
                 LOG.info("Done.");
+                taskUsageMappingRepository.save(taskUsageList);
+                taskUsageList = null;
+                System.gc();
 
                 LOG.info("Cleaning up finished jobs");
                 Iterator<Map.Entry<Long, Job>> iterator = jobMap.entrySet().iterator();
                 while(iterator.hasNext()){
                     Job j = iterator.next().getValue();
 
-                    if(j.getTaskHistory().size() < 1000) {
+                    if(j.getTaskHistory().size() < 12500) {
 //                        LOG.info("Saving job " + j.getJobId());
                         jobRepository.save(new Job(j, false));
-                        for(TaskHistory th : j.getTaskHistory().values()){
-                            String postMachineUsage = "http://localhost:8088/assign/usage/" + th.getMachineId();
-                            HttpHeaders headers = new HttpHeaders();
-                            headers.setContentType(MediaType.APPLICATION_JSON);
-                            if(th.getTaskUsage() != null) {
-                                TaskUsage t = th.getTaskUsage();
-                                t.setId(taskUsageCounter++);
-                                taskUsageMappingRepository.save(t);
-                                Machine m = machineRepository.findOne(th.getMachineId());
-                                m.getTaskUsageList().add(t.getId());
-                                machineRepository.save(m);
-                            }else{
-                                break;
-                            }
-                        }
                     }else{
                         LOG.severe("Not saving job " + j.getJobId() + " because it has " + j.getTaskHistory().size() + " tasks.");
                         //iterator.remove();
@@ -137,44 +125,6 @@ public class JobRequester {
                         iterator.remove();
                 }
             }
-
-//            for (File f : new File(Configuration.JOB_EVENTS_PATH).listFiles()) {
-//                JobEventsMapper.map(new FileReader(f), jobMap, initStart, initEnd);
-//            }
-//
-//            LOG.info("Finished job events mapping");
-//            for (File f : new File(Configuration.TASK_EVENTS_PATH).listFiles()) {
-//                TaskEventsMapper.map(new FileReader(f), jobMap, initStart, initEnd);
-//            }
-//
-//            LOG.info("Finished task events mapping");
-//
-//            jobMap = MapsUtil.sortJobMaponSubmitTime(jobMap);
-//
-//            Iterator<Map.Entry<Long, Job>> iterator = jobMap.entrySet().iterator();
-//            while (iterator.hasNext()) {
-//                Job j = iterator.next().getValue();
-//                template.postForObject("http://localhost:8088/jobs", j, Job.class);
-//            }
-//
-//
-//            LOG.info("Starting task usage mapping");
-//            File dir = new File(Configuration.TASK_USAGE_PATH);
-//            if (dir.isDirectory()) {
-//                int i = 1;
-//                for (File f : dir.listFiles()) {
-//                    TaskUsageConqueror.map(new FileReader(f), jobMap, initStart, initEnd);
-//                    LOG.info("Processed " + i + " of " + dir.listFiles().length + " files...");
-//                    ++i;
-//                }
-//            } else {
-//                TaskUsageMapper.map(new FileReader(Configuration.TASK_USAGE_PATH), jobMap, initStart, initEnd);
-//            }
-//
-//            LOG.info("Done.");
-//
-//            long time2 = System.currentTimeMillis();
-//            LOG.info("Reading duration: " + (time2 - time));
         }else {
             LOG.info("Jobs data existent in mongo.");
         }
@@ -183,28 +133,22 @@ public class JobRequester {
     }
 
 
-    @RequestMapping(method = RequestMethod.PUT, path = "/app/start")
-    public void jobRequestFlow() throws Exception{
+    @RequestMapping(method = RequestMethod.PUT, path = "/app/start/{startTime}/{endTime}/{historySize}")
+    public void jobRequestFlow(@PathVariable long startTime, @PathVariable long endTime, @PathVariable int historySize) throws Exception{
 
         coalitionClient.deleteCoalitionsFromRepository();
 
-        long initStart = 3600, initEnd = 5700;
-
-        CoalitionReasoner.appDurationMap = new TreeMap<String, DurationPrediction>();
-
+        long initStart = startTime - Configuration.STEP * historySize, initEnd = startTime;
+        PredictionMethod machinePredictionMethod = new PessimisticTaskUsagePrediction();
+        PredictionMethod jobPredictionMethod = new PessimisticDurationPrediction();
+        PredictionFactory.setPredictionMethod("machine", machinePredictionMethod);
+        PredictionFactory.setPredictionMethod("job", jobPredictionMethod);
 
         long time = System.currentTimeMillis();
         LOG.info("Predicting machine usage...");
         String predictionPath = "http://localhost:8088/predict/allUsage/" + initStart + "/" + initEnd;
+        //predict taskUsage for all machines
         template.put(predictionPath, 1);
-//        for(Machine m : machineRepository.findAll()){
-//            //MachinePrediction mp = Predictor.predictMachineUsage(m, initStart, initEnd);
-//
-////            LOG.info("prediction path " + predictionPath);
-//            MachinePrediction mp = ;
-//            m.setPrediction(mp);
-//            machineRepository.save(m);
-//        }
 
         LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
 
@@ -221,29 +165,9 @@ public class JobRequester {
         LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
 
 
-//        RepositoryPool.getInstance().jobRepo = MapsUtil.sortJobMaponSubmitTime(jobMap);
-
-//        if(RepositoryPool.getInstance().jobRepo == null)
-//            RepositoryPool.getInstance().jobRepo = new TreeMap<Long, Job>();
-//        while (iterator.hasNext()){
-//            Job j = iterator.next().getValue();
-//            if(j.getSubmitTime() == 0)
-//                continue;
-//            RepositoryPool.getInstance().jobRepo.put(j.getJobId(), j);
-//            Predictor.predictJobRuntime(j.getLogicJobName(), initStart, initEnd-300);
-//            if(j.getSubmitTime() >= (initEnd) * Configuration.TIME_DIVISOR){
-//                coalitionClient.sendJobRequest(new Job(j, true));
-//                LOG.info("For job " + j.getJobId() + " status is " + j.getStatus() + " at time " + j.getSubmitTime());
-//                break;
-//            }
-//
-//        }
-
-
         time = initEnd + Configuration.STEP;
-        long experimentEndTime = 7000;
         boolean updateCoalition = false;
-        while(time <= experimentEndTime) {
+        while(time <= endTime) {
             if(updateCoalition){
                 LOG.info("Predicting machine usage...");
                 predictionPath = "http://localhost:8088/predict/allUsage/" + initStart + "/" + initEnd;
@@ -259,9 +183,6 @@ public class JobRequester {
                     initEnd * Configuration.TIME_DIVISOR, time * Configuration.TIME_DIVISOR)) {
 
                 LOG.info("For job " + j.getJobId() + " status is " + j.getStatus() + " at time " + j.getSubmitTime());
-
-                if (j.getTaskHistory().get(0L).getTaskUsage() == null)
-                    continue;
 
                 if (j.getStatus().equals("finish")) {
                     if (j.getSubmitTime() <= (time) * Configuration.TIME_DIVISOR) {
@@ -285,7 +206,7 @@ public class JobRequester {
                             LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
                         }
 
-                        if (experimentEndTime - time > Configuration.STEP) {
+                        if (endTime - time > Configuration.STEP) {
                             time += Configuration.STEP;
                         } else {
                             break;

@@ -10,6 +10,7 @@ import ro.ieat.soso.App;
 import ro.ieat.soso.core.coalitions.Coalition;
 import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.persistence.CoalitionRepository;
+import util.AppConfig;
 import util.TestConfig;
 
 import java.util.ArrayList;
@@ -20,7 +21,7 @@ import java.util.ArrayList;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(App.class)
-@ContextConfiguration(classes = {App.class, TestConfig.class})
+@ContextConfiguration(classes = {AppConfig.class, TestConfig.class})
 @Profile("test")
 public class MongoTest {
     @Autowired

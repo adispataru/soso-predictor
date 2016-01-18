@@ -2,6 +2,7 @@ package ro.ieat.soso.predictor.prediction;
 
 import ro.ieat.soso.core.prediction.PredictionMethod;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -10,7 +11,7 @@ import java.util.Map;
  */
 public class PredictionFactory {
 
-    public static Map<String, PredictionMethod> predictionMethodMap;
+    public static Map<String, PredictionMethod> predictionMethodMap = new HashMap<>();
 
     public static PredictionMethod getPredictionMethod(String predictable){
         return predictionMethodMap.get(predictable);

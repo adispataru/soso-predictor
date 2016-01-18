@@ -78,7 +78,7 @@ public class FineTuner {
         long lowTime = (time - Configuration.STEP) * Configuration.TIME_DIVISOR;
         Logger LOG = Logger.getLogger("FineTuner");
         List<TaskUsage> allTaskUsageList = taskUsageMappingRepository.
-                findByStartTimeGreaterThanAndFinishTimeLessThan(lowTime, time);
+                findByStartTimeGreaterThanAndEndTimeLessThan(lowTime, time);
 
         Map<Long, TaskUsage> loadMap = new TreeMap<>();
         Map<Long, UsageError> usageErrorMap = new TreeMap<>();

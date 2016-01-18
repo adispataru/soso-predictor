@@ -11,9 +11,9 @@ import ro.ieat.soso.core.config.Configuration;
 import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.mappers.JobEventsMapper;
 import ro.ieat.soso.core.mappers.TaskEventsMapper;
-import ro.ieat.soso.core.prediction.DurationPrediction;
 import ro.ieat.soso.persistence.CoalitionRepository;
 import ro.ieat.soso.reasoning.CoalitionReasoner;
+import util.AppConfig;
 import util.TestConfig;
 
 import java.io.File;
@@ -30,7 +30,7 @@ import static junit.framework.Assert.assertTrue;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(App.class)
-@ContextConfiguration(classes = {App.class, TestConfig.class})
+@ContextConfiguration(classes = {AppConfig.class, TestConfig.class})
 @Profile("test")
 public class CoalitionReasonerTest {
 
@@ -61,7 +61,6 @@ public class CoalitionReasonerTest {
             TaskEventsMapper.map(new FileReader(f), jobMap, 600, 5400);
         }
 
-        CoalitionReasoner.appDurationMap = new TreeMap<String, DurationPrediction>();
         for(Job j : jobMap.values()){
 //            if(CoalitionReasoner.appDurationMap.containsKey(j.getLogicJobName()))
 //                continue;
@@ -96,7 +95,6 @@ public class CoalitionReasonerTest {
             TaskEventsMapper.map(new FileReader(f), jobMap, 5400, 5700);
         }
 
-        CoalitionReasoner.appDurationMap = new TreeMap<String, DurationPrediction>();
         for(Job j : jobMap.values()){
 //            if(CoalitionReasoner.appDurationMap.containsKey(j.getLogicJobName()))
 //                continue;

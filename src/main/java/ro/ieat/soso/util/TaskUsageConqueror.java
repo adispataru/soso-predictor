@@ -1,15 +1,11 @@
 package ro.ieat.soso.util;
 
 import org.springframework.web.client.RestTemplate;
-import ro.ieat.soso.core.coalitions.Usage;
 import ro.ieat.soso.core.jobs.Job;
-import ro.ieat.soso.core.jobs.TaskHistory;
-import ro.ieat.soso.core.jobs.TaskUsage;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Map;
 
 /**
@@ -69,37 +65,9 @@ public class TaskUsageConqueror {
 
             }
 
-            Usage usage = new Usage(startTime, endTime, cpu, mem, disk);
-            usage.setMaxCpu(maxCpu);
-            usage.setMaxMemory(maxMemory);
-            usage.setMaxDisk(maxDisk);
-
-
-            Job j = jobMap.get(jobId);
-            TaskUsage task = new TaskUsage(taskIndex, jobId, j.getLogicJobName());
-            ArrayList<Usage> usages = new ArrayList<Usage>();
-            usages.add(usage);
-            task.setUsageList(usages);
-            task.setMachineId(machine);
-
-            TaskHistory t = j.getTaskHistory().get(taskIndex);
-
-            task.setStartTime(t.getScheduleTime());
-            task.setFinishTime(t.getFinishTime());
-
-            if(t.getTaskUsage() != null) {
-                t.getTaskUsage().getUsageList().add (usage);
-            }else{
-                t.setTaskUsage(task);
-            }
-            if(t.getMachineId() == 0)
-                t.setMachineId(machine);
-//            String postMachineUsage = "http://localhost:8088/assign/usage/" + machine;
-//            Logger.getLogger("Conquer").info(postMachineUsage);
 
 
             //machineRepository.timeJobMap.put(machineRepository.jobRepo.get(jobId).getSubmitTime(), jobId);
-            jobMap.put(j.getJobId(), j);
 
         }
         br.close();

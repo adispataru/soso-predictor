@@ -14,6 +14,6 @@ public interface TaskUsageMappingRepository extends MongoRepository<TaskUsage, L
     TaskUsage findByJobIdAndTaskIndex(long jobId, long taskIndex);
     List<TaskUsage> findByMachineId(Long machineId);
     List<TaskUsage> findByMachineIdAndStartTimeLessThan(Long machineId, Long startTime);
-    List<TaskUsage> findByStartTimeGreaterThanAndFinishTimeLessThan(Long startTime, Long endTime);
+    List<TaskUsage> findByStartTimeGreaterThanAndEndTimeLessThan(Long startTime, Long endTime);
     List<TaskUsage> findByJobId(Long jobId);
 }

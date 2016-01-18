@@ -1,43 +1,36 @@
-package ro.ieat.soso;
+package util;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
-import org.springframework.web.client.RestTemplate;
 import ro.ieat.soso.core.config.Configuration;
 
 import java.util.logging.Logger;
 
 /**
- * Created by adrian on 05.01.2016.
+ * Created by adrian on 18.01.2016.
  */
 @SpringBootApplication
 @ComponentScan(basePackages = "ro.ieat.soso")
 @EnableMongoRepositories(basePackages = "ro.ieat.soso.persistence")
-public class App {
+public class AppConfig {
 
-    private static Logger LOG = Logger.getLogger(App.class.toString());
 
-    public static void main(String[] args) throws Exception {
-        Configuration.MACHINE_USAGE_PATH = "./data/output/machine_usage";
-        //Predictor.predictMachineUsage(5L, 600, 900);
+        private static Logger LOG = Logger.getLogger(AppConfig.class.toString());
+
+        public static void main(String[] args) throws Exception {
+            Configuration.MACHINE_USAGE_PATH = "./data/output/machine_usage";
+            //Predictor.predictMachineUsage(5L, 600, 900);
 //        try {
 //            Predictor.predictJobRuntime("D7IK6PSGY5Jcf32bkgMfNgBzrXUQs-DhLi4+jCYwZvQ=", 600, Long.MAX_VALUE / Configuration.TIME_DIVISOR);
 //        } catch (Exception e) {
 //            System.err.printf("Caught error: \n" + e);
 //        }
-        //initializeCoalitions();
+            //initializeCoalitions();
 
-        //configure(600, 6000);
+            //configure(600, 6000);
 
-        SpringApplication.run(App.class, args);
-        RestTemplate restTemplate = new RestTemplate();
-        restTemplate.getForObject("http://localhost:8088/app/init/0/5700", String.class);
-        restTemplate.put("http://localhost:8088/app/start/5700/6000/4" , null);
-
-
-
-    }
-
+            SpringApplication.run(AppConfig.class, args);
+        }
 }
