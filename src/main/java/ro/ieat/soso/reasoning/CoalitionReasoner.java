@@ -8,20 +8,19 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import ro.ieat.soso.core.coalitions.Coalition;
 import ro.ieat.soso.core.coalitions.Machine;
-import ro.ieat.soso.core.config.Configuration;
-import ro.ieat.soso.core.jobs.Job;
-import ro.ieat.soso.core.jobs.TaskUsage;
 import ro.ieat.soso.core.mappers.MachineEventsMapper;
-import ro.ieat.soso.core.prediction.DurationPrediction;
+import ro.ieat.soso.core.prediction.Duration;
 import ro.ieat.soso.persistence.CoalitionRepository;
 import ro.ieat.soso.persistence.JobRepository;
 import ro.ieat.soso.persistence.MachineRepository;
 import ro.ieat.soso.persistence.TaskUsageMappingRepository;
-import ro.ieat.soso.predictor.prediction.PredictionFactory;
 import ro.ieat.soso.reasoning.controllers.CoalitionClient;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Random;
+import java.util.TreeMap;
 import java.util.logging.Logger;
 
 /**
@@ -32,7 +31,6 @@ import java.util.logging.Logger;
 @RestController
 public class CoalitionReasoner {
 
-    public static Map<String, DurationPrediction> appDurationMap;
     public static final Double THRESHOLD = 0.4;
     private static Logger LOG = Logger.getLogger(CoalitionReasoner.class.toString());
     public static long c_id = 1;
@@ -59,7 +57,7 @@ public class CoalitionReasoner {
         long size = machineRepository.count();
 
         for(Machine m : machineRepository.findAll()) {
-            reason(m, coalitionMap, time);
+            reasonMachineRandomly(m, coalitionMap, time);
 //            LOG.info("Machine number: " + i);
             if(i % size / 10 == 0)
                 LOG.info(String.format("%.2f%%", i * 1.0 / size));
@@ -98,37 +96,18 @@ public class CoalitionReasoner {
         System.out.println(objectMapper.writeValueAsString(c));
     }
 
-    public void reason(Machine machineProperties, Map<Long, Coalition> coalitionMap, long time) throws Exception {
+    public void reasonMachineRandomly(Machine machineProperties, Map<Long, Coalition> coalitionMap, long time) throws Exception {
 
 
 
         long minSize;
         Coalition coalition = new Coalition();
-        coalition.setCurrentETA(PredictionFactory.zeroDurationPrediction());
+        coalition.setCurrentETA(new Duration(0));
         coalition.setConfidenceLevel(.0);
 
         if(MachineEventsMapper.MACHINES.containsKey(machineProperties.getId())) {
             machineProperties.setCpu(MachineEventsMapper.MACHINES.get(machineProperties.getId()).getKey());
             machineProperties.setMemory(MachineEventsMapper.MACHINES.get(machineProperties.getId()).getValue());
-        }
-
-
-        //Check availability of machine
-        //DONE Here maybe getMaxCPU or something else would work better.
-        Double availableCPU = machineProperties.getCpu() - machineProperties.getPrediction().getMaxCPU();
-        Double availableMem = machineProperties.getMemory() - machineProperties.getPrediction().getMaxMemory();
-
-        if(availableCPU > THRESHOLD * machineProperties.getCpu() && availableMem > THRESHOLD * machineProperties.getMemory()){
-
-            //set machine as available from current time
-            List<Long> available = new ArrayList<Long>();
-            available.add(time * Configuration.TIME_DIVISOR);
-            machineProperties.setETA(PredictionFactory.predictTime(available));
-            machineRepository.save(machineProperties);
-            if (machineProperties.getETA().getMax() > coalition.getCurrentETA().getMax()) {
-                coalition.setCurrentETA(machineProperties.getETA());
-            }
-
         }
 
 //        LOG.info("min size: " + minSize);
@@ -167,86 +146,17 @@ public class CoalitionReasoner {
         }
     }
 
-
-    @RequestMapping(method = RequestMethod.PUT, path = "/coalitions/update/{time}")
-    public void updateAll(@PathVariable long time){
-        for(Coalition c : coalitionRepository.findAll()){
-            reason(c, time);
-            c = coalitionRepository.findOne(c.getId());
-            if(c.getCurrentETA().getMax() > (time + Configuration.STEP) * Configuration.TIME_DIVISOR)
-                sendCoalition(c);
-        }
-
-    }
-
-
-
-    public int reason(Coalition coalition, long time) {
+    public int update(Coalition coalition, long time) {
 
         for(Long m : coalition.getMachines()){
             Machine mp = machineRepository.findOne(m);
 
-            long minSize = Long.MAX_VALUE;
-            long minTaskStartTime = Long.MAX_VALUE;
-            List<TaskUsage> taskUsageList = taskUsageMappingRepository.
-                    findByMachineIdAndStartTimeLessThan(mp.getId(), time);
-            for(TaskUsage taskUsage : taskUsageList){
-                //Get list before to avoid repeated interogation
-//            TaskUsage taskUsage = taskUsageMappingRepository.findOne(taskUsageId);
-                Long jobId = taskUsage.getJobId();
-                Job job = jobRepository.findOne(jobId);
-                if(job == null)
-                    continue;
-
-                long size = job.getTaskSize();
-                if(size < minSize){
-                    minSize = size;
-                }
-                if(coalition.getJobs() == null){
-                    coalition.setJobs(new TreeMap<String, Long>());
-                }
-
-                String logJobName = job.getLogicJobName();
-
-                if(appDurationMap.containsKey(logJobName)) {
-                    //long maxEndTime = currentJobs.get(jobId).getScheduleTime() + appDurationMap.get(logJobName).getMax();
-
-                    coalition.getJobs().put(logJobName, appDurationMap.get(logJobName).getMax());
-
-                    if (minTaskStartTime > appDurationMap.get(logJobName).getMin()) {
-                        coalition.setCurrentETA(appDurationMap.get(logJobName));
-                        coalition.getCurrentETA().setMax(coalition.getCurrentETA().getMax() + job.getScheduleTime());
-                        coalition.getCurrentETA().setMin(coalition.getCurrentETA().getMin() + job.getScheduleTime());
-                        coalition.getCurrentETA().setAverage(coalition.getCurrentETA().getAverage() + job.getScheduleTime());
-                        coalition.getCurrentETA().setHistogram(coalition.getCurrentETA().getHistogram() + job.getScheduleTime());
-                        minTaskStartTime = appDurationMap.get(logJobName).getMin();
-                    }
-                }
-
-
-
-
-            }
-            mp.setPrediction(mp.getPrediction());
+            if(mp.getETA().longValue() > coalition.getCurrentETA().longValue())
+                coalition.setCurrentETA(mp.getETA());
 
             //Check availability of machine
-            Double availableCPU = mp.getCpu() - mp.getPrediction().getMaxCPU();
-            Double availableMem = mp.getMemory() - mp.getPrediction().getMaxMemory();
-
-            if(availableCPU > THRESHOLD * mp.getCpu() && availableMem > THRESHOLD * mp.getMemory()){
-
-                //set coalition as available from current time
-                List<Long> available = new ArrayList<Long>();
-                available.add(time);
-                mp.setETA(PredictionFactory.predictTime(available));
-                machineRepository.save(mp);
-                if (mp.getETA().getMax() > coalition.getCurrentETA().getMax()) {
-                    coalition.setCurrentETA(mp.getETA());
-                }
-            }//The else case was treated in the previous 'for loop' to avoid the same computation
+            //The else case was treated in the previous 'for loop' to avoid the same computation
         }
-
-        //TODO Each coalition is updated!!! So, send just the ones that are available from <time>
 
         coalitionRepository.save(coalition);
 
