@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 @RestController
 public  class Predictor {
 
+    private static final Double THRESHOLD = 0.4;
     @Autowired
     TaskUsageMappingRepository taskUsageMappingRepository;
     @Autowired
@@ -75,6 +76,12 @@ public  class Predictor {
 
 
             m.setUsagePrediction(machineUsage);
+            Double availableCPU = m.getCpu() - m.getUsagePrediction().getMaxCpu();
+            Double availableMem = m.getMemory() - m.getUsagePrediction().getMaxMemory();
+
+            if(availableCPU > THRESHOLD * m.getCpu() && availableMem > THRESHOLD * m.getMemory()){
+                m.setETA(new Duration(machineUsage.getStartTime()));
+            }
             machineRepository.save(m);
         }
 
@@ -130,6 +137,12 @@ public  class Predictor {
 
 
         m.setUsagePrediction(machineUsage);
+        Double availableCPU = m.getCpu() - m.getUsagePrediction().getMaxCpu();
+        Double availableMem = m.getMemory() - m.getUsagePrediction().getMaxMemory();
+
+        if(availableCPU > THRESHOLD * m.getCpu() && availableMem > THRESHOLD * m.getMemory()){
+            m.setETA(new Duration(machineUsage.getStartTime()));
+        }
         machineRepository.save(m);
 
         return machineUsage;
