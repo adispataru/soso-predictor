@@ -40,7 +40,7 @@ public class FineTuner {
     JobRepository jobRepository;
     @Autowired
     JobDurationRepository jobDurationRepository;
-    private static final Double THRESHOLD = 0.8;
+    private static final Double THRESHOLD = 0.9;
     private static final Double IDLE_THRESHOLD = 0.1;
 
     RestTemplate template = new RestTemplate();
@@ -72,6 +72,13 @@ public class FineTuner {
         }
     }
 
+    private boolean jobListContainsId(List<Job> list, Long id){
+        for(Job j : list)
+            if (j.getJobId() == id)
+                return true;
+        return false;
+    }
+
     @RequestMapping(method = RequestMethod.PUT, path = "/finetuner/{time}")
     public void fineTuneAndWriteResults(@PathVariable Long time){
 
@@ -86,26 +93,46 @@ public class FineTuner {
         Map<Long, UsageError> usageErrorMap = new TreeMap<>();
         Long schedulingErrors = 0L;
         List<Long> jobIds = new ArrayList<>();
+        List<Job> jobList = jobRepository.findBySubmitTimeBetween(lowTime, time);
+        List<JobDuration> jobDurations = jobDurationRepository.findBySubmitTimeBetween(lowTime, time);
+        List<Long> runtimeErrors = new ArrayList<>();
+        for(Job j : jobList){
+            Long d = j.getFinishTime() - j.getScheduleTime();
+            for(JobDuration jd : jobDurations){
+                if(jd.getLogicJobName().equals(j.getLogicJobName())){
+                    runtimeErrors.add(Math.abs(jd.getDuration().longValue() - d));
+                }
+            }
+        }
+
+
         for(Machine m : machineRepository.findAll()){
             TaskUsage machineLoad = new TaskUsage();
+            TaskUsage machineLoadWithoutCurrent = new TaskUsage();
             List<TaskUsage> usageList = allTaskUsageList.stream().filter(t -> t.getAssignedMachineId().longValue() == m.getId() ||
                     (t.getAssignedMachineId() == 0 && t.getMachineId().equals(m.getId())))
                     .collect(Collectors.toList());
             for(TaskUsage t : usageList) {
                 jobIds.add(t.getJobId());
                 machineLoad.addTaskUsage(t);
+                //to ensure usage prediction error.
+                if(jobListContainsId(jobList, t.getJobId()))
+                    machineLoadWithoutCurrent.addTaskUsage(t);
             }
+            TaskUsage machineUsage = new TaskUsage();
+            machineUsage.addTaskUsage(machineLoad);
+            machineLoad.divideCPU(m.getCpu());
             loadMap.put(m.getId(), machineLoad);
-            usageErrorMap.put(m.getId(), new UsageError(machineLoad, m.getUsagePrediction()));
+            usageErrorMap.put(m.getId(), new UsageError(machineLoadWithoutCurrent, m.getUsagePrediction()));
+//            LOG.info(machineLoad.getCpu() + " <- cpu");
 
             int i = usageList.size() - 1;
             //actually makes sense to substract usage of task which produced error.
-            while(machineLoad.getMaxCpu() > THRESHOLD * m.getCpu() ||
-                    machineLoad.getMaxMemory() > THRESHOLD * m.getMemory()){
-                machineLoad.substractTaskUsage(usageList.get(i));
+            while(machineUsage.getCpu() > THRESHOLD * m.getCpu() ||
+                    machineUsage.getMemory() > THRESHOLD * m.getMemory()){
+                machineUsage.substractTaskUsage(usageList.get(i));
                 schedulingErrors++;
                 i--;
-
             }
         }
 
@@ -122,17 +149,6 @@ public class FineTuner {
                 idleCoalitions++;
         }
 
-        List<Job> jobList = jobRepository.findBySubmitTimeBetween(lowTime, time);
-        List<JobDuration> jobDurations = jobDurationRepository.findBySubmitTimeBetween(lowTime, time);
-        List<Long> runtimeErrors = new ArrayList<>();
-        for(Job j : jobList){
-            Long d = j.getFinishTime() - j.getScheduleTime();
-            for(JobDuration jd : jobDurations){
-                if(jd.getLogicJobName().equals(j.getLogicJobName())){
-                    runtimeErrors.add(Math.abs(jd.getDuration().longValue() - d));
-                }
-            }
-        }
 
         writeResults(usageErrorMap, loadMap, idleCoalitions, coalitions.size(), schedulingErrors, runtimeErrors, time);
 

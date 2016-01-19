@@ -97,8 +97,8 @@ public  class Predictor {
 
 
             m.setUsagePrediction(machineUsage);
-            Double availableCPU = m.getCpu() - m.getUsagePrediction().getMaxCpu();
-            Double availableMem = m.getMemory() - m.getUsagePrediction().getMaxMemory();
+            Double availableCPU = m.getCpu() - m.getUsagePrediction().getCpu();
+            Double availableMem = m.getMemory() - m.getUsagePrediction().getMemory();
 
             if(availableCPU > THRESHOLD * m.getCpu() && availableMem > THRESHOLD * m.getMemory()){
                 m.setETA(machineUsage.getStartTime());
@@ -162,8 +162,8 @@ public  class Predictor {
 
 
         m.setUsagePrediction(machineUsage);
-        Double availableCPU = m.getCpu() - m.getUsagePrediction().getMaxCpu();
-        Double availableMem = m.getMemory() - m.getUsagePrediction().getMaxMemory();
+        Double availableCPU = m.getCpu() - m.getUsagePrediction().getCpu();
+        Double availableMem = m.getMemory() - m.getUsagePrediction().getMemory();
 
         if(availableCPU > THRESHOLD * m.getCpu() && availableMem > THRESHOLD * m.getMemory()){
             m.setETA(machineUsage.getStartTime());
