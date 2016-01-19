@@ -188,7 +188,7 @@ public class JobRequester {
             for (Job j : jobRepository.findBySubmitTimeBetween(
                     initEnd * Configuration.TIME_DIVISOR, time * Configuration.TIME_DIVISOR)) {
 
-                LOG.info("For job " + j.getJobId() + " status is " + j.getStatus() + " at time " + j.getSubmitTime());
+                //LOG.info("For job " + j.getJobId() + " status is " + j.getStatus() + " at time " + j.getSubmitTime());
 
                 if (j.getStatus().equals("finish")) {
                     if (j.getSubmitTime() <= (time) * Configuration.TIME_DIVISOR) {
@@ -226,7 +226,7 @@ public class JobRequester {
 
             initEnd = time;
             time += Configuration.STEP;
-            template.put("http://localhost:8088/evaluate/" + initEnd, 1);
+            template.put("http://localhost:8088/finetuner/" + initEnd, 1);
             updateCoalition = true;
         }
         LOG.exiting("experiment", "JobRequester");

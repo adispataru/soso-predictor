@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
@@ -33,6 +34,7 @@ public  class Predictor {
     JobRepository jobRepository;
     @Autowired
     MachineRepository machineRepository;
+    private static Logger LOG = Logger.getLogger("Predictor");
 
     @RequestMapping(method = RequestMethod.PUT, path = "/predict/allUsage/{historyStart}/{historyEnd}", consumes = "application/json")
     public void predictAllMachines(@PathVariable long historyStart,@PathVariable long historyEnd){
@@ -40,34 +42,49 @@ public  class Predictor {
                 findByStartTimeGreaterThanAndEndTimeLessThan(historyStart * Configuration.TIME_DIVISOR - 1,
                         historyEnd * Configuration.TIME_DIVISOR);
 
+        int i = 0;
         for(Machine m : machineRepository.findAll()){
+            if(m.getUsagePrediction().getStartTime() == historyStart
+                    && m.getUsagePrediction().getEndTime() == historyEnd){
+                return;
+            }
+
+
             List<TaskUsage> usageList = taskUsageList.stream().filter(t -> t.getAssignedMachineId().longValue() == m.getId() ||
                     (t.getAssignedMachineId() == 0 && t.getMachineId().equals(m.getId())))
                     .collect(Collectors.toList());
+
+
 
             List<TaskUsage> queue = new LinkedList<>();
             int processed = 1;
             List<TaskUsage> predictedTaskUsageList = new ArrayList<>();
             int lastIndex = 1;
-            TaskUsage lastTaskUsage = usageList.get(0);
-            queue.add(lastTaskUsage);
-            while(processed < usageList.size()){
-                TaskUsage taskUsage = usageList.get(lastIndex);
-                if(taskUsage.getJobId() == lastTaskUsage.getJobId() &&
-                        taskUsage.getTaskIndex() == lastTaskUsage.getTaskIndex()){
-                    queue.add(taskUsage);
+            if(usageList.size() > 0){
+                TaskUsage lastTaskUsage = usageList.get(0);
 
-                }else{
-                    if(!queue.isEmpty()){
-                        TaskUsage predicted = (TaskUsage) PredictionFactory.getPredictionMethod("machine").predict(queue);
-                        predictedTaskUsageList.add(predicted);
-                        queue.clear();
+                queue.add(lastTaskUsage);
+                while(processed < usageList.size()){
+                    TaskUsage taskUsage = usageList.get(lastIndex);
+                    if(taskUsage.getJobId() == lastTaskUsage.getJobId() &&
+                            taskUsage.getTaskIndex() == lastTaskUsage.getTaskIndex()){
+                        queue.add(taskUsage);
+
+                    }else{
+                        if(!queue.isEmpty()){
+                            TaskUsage predicted = (TaskUsage) PredictionFactory.getPredictionMethod("machine").predict(queue);
+                            predictedTaskUsageList.add(predicted);
+                            queue.clear();
+                        }
+                        queue.add(taskUsage);
                     }
-                    queue.add(taskUsage);
+                    processed++;
+                    lastIndex++;
                 }
-                processed++;
-                lastIndex++;
+            }else{
+                predictedTaskUsageList.add(new TaskUsage());
             }
+
             TaskUsage machineUsage = new TaskUsage();
             for(TaskUsage tu : predictedTaskUsageList){
                 if(machineUsage.getEndTime() < tu.getEndTime())
@@ -76,6 +93,7 @@ public  class Predictor {
                     machineUsage.setStartTime(tu.getStartTime());
                 machineUsage.addTaskUsage(tu);
             }
+
 
 
             m.setUsagePrediction(machineUsage);
@@ -89,6 +107,8 @@ public  class Predictor {
             }
             machineRepository.save(m);
         }
+        Logger.getLogger("Predictor").info("machines with usage: " + i);
+
 
     }
 

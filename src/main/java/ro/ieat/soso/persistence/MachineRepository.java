@@ -8,6 +8,4 @@ import ro.ieat.soso.core.coalitions.Machine;
  * For maintaining coalitions.
  */
 public interface MachineRepository extends MongoRepository<Machine, Long>{
-    //TODO Check what you put in coalition.jobs
-//    List<Machine> findByLogicJobName(String logicJobName);
 }

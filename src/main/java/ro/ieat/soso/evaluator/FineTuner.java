@@ -76,9 +76,11 @@ public class FineTuner {
     public void fineTuneAndWriteResults(@PathVariable Long time){
 
         long lowTime = (time - Configuration.STEP) * Configuration.TIME_DIVISOR;
+        time *= Configuration.TIME_DIVISOR;
         Logger LOG = Logger.getLogger("FineTuner");
         List<TaskUsage> allTaskUsageList = taskUsageMappingRepository.
-                findByStartTimeGreaterThanAndEndTimeLessThan(lowTime, time);
+                findByStartTimeGreaterThanAndEndTimeLessThan(lowTime - 1, time + 1);
+        LOG.info("This window tasks number: " + allTaskUsageList.size());
 
         Map<Long, TaskUsage> loadMap = new TreeMap<>();
         Map<Long, UsageError> usageErrorMap = new TreeMap<>();
@@ -96,7 +98,6 @@ public class FineTuner {
             loadMap.put(m.getId(), machineLoad);
             usageErrorMap.put(m.getId(), new UsageError(machineLoad, m.getUsagePrediction()));
 
-
             int i = usageList.size() - 1;
             //actually makes sense to substract usage of task which produced error.
             while(machineLoad.getMaxCpu() > THRESHOLD * m.getCpu() ||
@@ -110,7 +111,8 @@ public class FineTuner {
 
 
         long idleCoalitions = 0;
-        for(Coalition c : coalitionRepository.findAll()){
+        List<Coalition> coalitions = coalitionRepository.findAll();
+        for(Coalition c : coalitions){
             long totalIdle = 0;
             for(Long machineId : c.getMachines()){
                 if(loadMap.get(machineId).getCpu() < IDLE_THRESHOLD)
@@ -132,13 +134,13 @@ public class FineTuner {
             }
         }
 
-        writeResults(usageErrorMap, loadMap, idleCoalitions, schedulingErrors, runtimeErrors, time);
+        writeResults(usageErrorMap, loadMap, idleCoalitions, coalitions.size(), schedulingErrors, runtimeErrors, time);
 
 
 
     }
 
-    private void writeResults(Map<Long, UsageError> usageErrorMap, Map<Long, TaskUsage> loadMap, long idleCoalitions, Long schedulingErrors, List<Long> runtimeErrors, long time) {
+    private void writeResults(Map<Long, UsageError> usageErrorMap, Map<Long, TaskUsage> loadMap, long idleCoalitions, int coalitionSize, Long schedulingErrors, List<Long> runtimeErrors, long time) {
 
 
         //USAGE PREDICTION ERROR
@@ -171,7 +173,7 @@ public class FineTuner {
             fileWriter = new FileWriter(f, true);
             if(writeHeader)
                 fileWriter.write("%time cpu maxCpu mem maxMem disk maxDisk");
-            fileWriter.write(String.format("%d %s", time, average.toStringforPlot()));
+            fileWriter.write(String.format("%d %s\n", time, average.toStringforPlot()));
         } catch (IOException e) {
             e.printStackTrace();
         }finally {
@@ -214,7 +216,7 @@ public class FineTuner {
             fileWriter = new FileWriter(f, true);
             if(writeHeader)
                 fileWriter.write("%time cpu maxCpu mem maxMem disk maxDisk");
-            fileWriter.write(String.format("%d %s", time, averageUsage.loadForPlot()));
+            fileWriter.write(String.format("%d %s\n", time, averageUsage.loadForPlot()));
         } catch (IOException e) {
             e.printStackTrace();
         }finally {
@@ -234,7 +236,7 @@ public class FineTuner {
             fileWriter = new FileWriter(f, true);
             if(writeHeader)
                 fileWriter.write("%time #idle_coals");
-            fileWriter.write(String.format("%d %d", time, idleCoalitions));
+            fileWriter.write(String.format("%d %d %d\n", time, idleCoalitions, coalitionSize));
         } catch (IOException e) {
             e.printStackTrace();
         }finally {
@@ -252,7 +254,7 @@ public class FineTuner {
             fileWriter = new FileWriter(f, true);
             if(writeHeader)
                 fileWriter.write("%time #sched_errs");
-            fileWriter.write(String.format("%d %d", time, schedulingErrors));
+            fileWriter.write(String.format("%d %d\n", time, schedulingErrors));
         } catch (IOException e) {
             e.printStackTrace();
         }finally {
@@ -274,7 +276,7 @@ public class FineTuner {
             fileWriter = new FileWriter(f, true);
             if(writeHeader)
                 fileWriter.write("%time #avg runtime error");
-            fileWriter.write(String.format("%d %.4f", time, averageRError));
+            fileWriter.write(String.format("%d %.4f\n", time, averageRError));
         } catch (IOException e) {
             e.printStackTrace();
         }finally {
@@ -286,4 +288,6 @@ public class FineTuner {
                 }
         }
     }
+
+
 }
