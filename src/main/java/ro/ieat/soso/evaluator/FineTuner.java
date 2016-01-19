@@ -127,7 +127,7 @@ public class FineTuner {
 //            LOG.info(machineLoad.getCpu() + " <- cpu");
 
             int i = usageList.size() - 1;
-            //actually makes sense to substract usage of task which produced error.
+            //actually makes sense to subtract usage of task which produced error.
             while(machineUsage.getCpu() > THRESHOLD * m.getCpu() ||
                     machineUsage.getMemory() > THRESHOLD * m.getMemory()){
                 machineUsage.substractTaskUsage(usageList.get(i));
