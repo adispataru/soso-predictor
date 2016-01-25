@@ -13,6 +13,7 @@ import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.jobs.TaskUsage;
 import ro.ieat.soso.persistence.*;
 import ro.ieat.soso.predictor.prediction.JobDuration;
+import ro.ieat.soso.util.TaskUsageCombiner;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -40,42 +41,26 @@ public class FineTuner {
     JobRepository jobRepository;
     @Autowired
     JobDurationRepository jobDurationRepository;
-    private static final Double THRESHOLD = 0.9;
-    private static final Double IDLE_THRESHOLD = 0.1;
+    private static final Double THRESHOLD = 1.0;
+    private static final Double IDLE_THRESHOLD = 0.05;
 
     RestTemplate template = new RestTemplate();
     private static final String testOutputPath = "./output/results/";
 
 
-    private static void writeResults(long time, List<Double> cpuLoad, List<Double> memLoad, List<Long> lateList, long numViolations){
-
-        double avgCPU = 0, avgMem = 0, avgLate = 0;
-        for(Double d : cpuLoad)
-            avgCPU+= d;
-        for(Double d : memLoad)
-            avgMem+= d;
-        for(Long l : lateList)
-            avgLate += l;
-
-
-        File f = new File(testOutputPath + "initial");
-        boolean writeHeader = f.exists();
-        try {
-            FileWriter fileWriter = new FileWriter(f, true);
-            if(writeHeader)
-                fileWriter.write("%time avgCPU avgMEM avgLATE numViol");
-            fileWriter.write(String.format("%d %f %f %f %d", time, avgCPU/cpuLoad.size(), avgMem/memLoad.size(),
-                    avgLate/lateList.size(), numViolations));
-
-        } catch (IOException e) {
-            Logger.getLogger("Evaluator").severe("File not found " + f.getAbsolutePath());
-        }
-    }
-
     private boolean jobListContainsId(List<Job> list, Long id){
         for(Job j : list)
             if (j.getJobId() == id)
                 return true;
+        return false;
+    }
+
+    private boolean isFinishedBefore(List<Job> list, Long id, Long when){
+        for(Job j : list)
+            if (j.getJobId() == id) {
+                if(j.getFinishTime() < when)
+                    return true;
+            }
         return false;
     }
 
@@ -96,42 +81,46 @@ public class FineTuner {
         List<Job> jobList = jobRepository.findBySubmitTimeBetween(lowTime, time);
         List<JobDuration> jobDurations = jobDurationRepository.findBySubmitTimeBetween(lowTime, time);
         List<Long> runtimeErrors = new ArrayList<>();
+        long scheduledTasks = 0;
         for(Job j : jobList){
             Long d = j.getFinishTime() - j.getScheduleTime();
+            scheduledTasks += j.getTaskHistory().size();
             for(JobDuration jd : jobDurations){
                 if(jd.getLogicJobName().equals(j.getLogicJobName())){
                     runtimeErrors.add(Math.abs(jd.getDuration().longValue() - d));
                 }
             }
         }
-
-
         for(Machine m : machineRepository.findAll()){
-            TaskUsage machineLoad = new TaskUsage();
-            TaskUsage machineLoadWithoutCurrent = new TaskUsage();
+
             List<TaskUsage> usageList = allTaskUsageList.stream().filter(t -> t.getAssignedMachineId().longValue() == m.getId() ||
                     (t.getAssignedMachineId() == 0 && t.getMachineId().equals(m.getId())))
                     .collect(Collectors.toList());
-            for(TaskUsage t : usageList) {
-                jobIds.add(t.getJobId());
-                machineLoad.addTaskUsage(t);
-                //to ensure usage prediction error.
-                if(jobListContainsId(jobList, t.getJobId()))
-                    machineLoadWithoutCurrent.addTaskUsage(t);
-            }
+            List<TaskUsage> usageWithoutScheduled = allTaskUsageList.stream().filter(t -> jobListContainsId(jobList, t.getId()))
+                    .collect(Collectors.toList());
+            TaskUsage machineLoad = TaskUsageCombiner.combineTaskUsageList(usageList, lowTime);
+            TaskUsage machineLoadWithoutCurrent = TaskUsageCombiner.combineTaskUsageList(usageWithoutScheduled, lowTime);
+
             TaskUsage machineUsage = new TaskUsage();
             machineUsage.addTaskUsage(machineLoad);
             machineLoad.divideCPU(m.getCpu());
+            machineLoad.divideMemory(m.getMemory());
             loadMap.put(m.getId(), machineLoad);
             usageErrorMap.put(m.getId(), new UsageError(machineLoadWithoutCurrent, m.getUsagePrediction()));
 //            LOG.info(machineLoad.getCpu() + " <- cpu");
 
             int i = usageList.size() - 1;
             //actually makes sense to subtract usage of task which produced error.
-            while(machineUsage.getCpu() > THRESHOLD * m.getCpu() ||
-                    machineUsage.getMemory() > THRESHOLD * m.getMemory()){
-                machineUsage.substractTaskUsage(usageList.get(i));
-                schedulingErrors++;
+
+            while((machineUsage.getCpu() > THRESHOLD * m.getCpu() ||
+                    machineUsage.getMemory() > THRESHOLD * m.getMemory()) && i >= 0) {
+                LOG.info("Machine usage" + machineUsage.getCpu() + " " + machineUsage.getMemory() +
+                        "\nMachine capacity " + m.getCpu() + " " + m.getMemory());
+
+                if(usageList.get(i).getAssignedMachineId() != 0) {
+                    machineUsage.substractTaskUsage(usageList.get(i));
+                    schedulingErrors++;
+                }
                 i--;
             }
         }
@@ -150,13 +139,13 @@ public class FineTuner {
         }
 
 
-        writeResults(usageErrorMap, loadMap, idleCoalitions, coalitions.size(), schedulingErrors, runtimeErrors, time);
+        writeResults(usageErrorMap, loadMap, idleCoalitions, coalitions.size(), schedulingErrors, scheduledTasks, runtimeErrors, time);
 
 
 
     }
 
-    private void writeResults(Map<Long, UsageError> usageErrorMap, Map<Long, TaskUsage> loadMap, long idleCoalitions, int coalitionSize, Long schedulingErrors, List<Long> runtimeErrors, long time) {
+    private void writeResults(Map<Long, UsageError> usageErrorMap, Map<Long, TaskUsage> loadMap, long idleCoalitions, int coalitionSize, Long schedulingErrors, long scheduledTasks, List<Long> runtimeErrors, long time) {
 
 
         //USAGE PREDICTION ERROR
@@ -269,8 +258,8 @@ public class FineTuner {
         try {
             fileWriter = new FileWriter(f, true);
             if(writeHeader)
-                fileWriter.write("%time #sched_errs");
-            fileWriter.write(String.format("%d %d\n", time, schedulingErrors));
+                fileWriter.write("%time #sched_errs #total");
+            fileWriter.write(String.format("%d %d %d\n", time, schedulingErrors, scheduledTasks));
         } catch (IOException e) {
             e.printStackTrace();
         }finally {

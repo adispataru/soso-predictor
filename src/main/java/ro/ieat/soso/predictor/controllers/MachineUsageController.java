@@ -40,7 +40,6 @@ public class MachineUsageController {
 
         for(TaskUsage taskUsage : taskUsageList){
             taskUsage.setAssignedMachineId(job.getTaskMachineMapping().get(taskUsage.getTaskIndex()));
-            LOG.info("Task Usage assigned id: " + taskUsage.getAssignedMachineId());
         }
         taskUsageMappingRepository.save(taskUsageList);
         LOG.info("Scheduling " + job.getJobId());

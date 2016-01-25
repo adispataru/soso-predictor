@@ -38,9 +38,11 @@ public  class Predictor {
 
     @RequestMapping(method = RequestMethod.PUT, path = "/predict/allUsage/{historyStart}/{historyEnd}", consumes = "application/json")
     public void predictAllMachines(@PathVariable long historyStart,@PathVariable long historyEnd){
+        //Here again just endTime should be taken into account
         List<TaskUsage> taskUsageList = taskUsageMappingRepository.
                 findByStartTimeGreaterThanAndEndTimeLessThan(historyStart * Configuration.TIME_DIVISOR - 1,
-                        historyEnd * Configuration.TIME_DIVISOR);
+                        historyEnd * Configuration.TIME_DIVISOR + 1);
+
 
         int i = 0;
         for(Machine m : machineRepository.findAll()){
