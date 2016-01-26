@@ -60,17 +60,13 @@ public  class Predictor {
 
 
 
-            List<TaskUsage> queue = new LinkedList<>();
-            int processed = 1;
+            int processed = 0;
             List<TaskUsage> predictedTaskUsageList = new ArrayList<>();
-            int lastIndex = 1;
+            int lastIndex = 0;
             if(usageList.size() > 0){
-                TaskUsage lastTaskUsage = usageList.get(0);
 
-
-                //This is wrong
-                //queue.add(lastTaskUsage);
                 List<TaskPair> processedTasks = new ArrayList<>();
+
                 while(processed < usageList.size()){
                     TaskUsage taskUsage = usageList.get(lastIndex);
                     TaskPair tp = new TaskPair();
@@ -83,7 +79,7 @@ public  class Predictor {
                     List<TaskUsage> thisTaskUsageList = usageList.stream().filter(t -> t.getJobId() == taskUsage.getJobId() &&
                         t.getTaskIndex() == taskUsage.getTaskIndex()).collect(Collectors.toList());
 
-                    TaskUsage predicted = (TaskUsage) PredictionFactory.getPredictionMethod("machine").predict(queue);
+                    TaskUsage predicted = (TaskUsage) PredictionFactory.getPredictionMethod("machine").predict(thisTaskUsageList);
                     predictedTaskUsageList.add(predicted);
 
                     processed++;
