@@ -89,7 +89,7 @@ public class JobRequester {
         if(jobRepository.count() == 0) {
 
             Map<Long, Job> jobMap = new TreeMap<Long, Job>();
-            for(int i = 0 ; i < 1; i++){
+            for(int i = 0 ; i < 2; i++){
                 String jobEvents = Configuration.JOB_EVENTS_PATH + String.format("part-%05d-of-00500.csv", i);
                 String taskEvents = Configuration.TASK_EVENTS_PATH + String.format("part-%05d-of-00500.csv", i);
                 String taskUsages = Configuration.TASK_USAGE_PATH + String.format("part-%05d-of-00500.csv", i);
