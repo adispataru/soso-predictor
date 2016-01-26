@@ -91,12 +91,14 @@ public class FineTuner {
                 }
             }
         }
+
+
         for(Machine m : machineRepository.findAll()){
 
             List<TaskUsage> usageList = allTaskUsageList.stream().filter(t -> t.getAssignedMachineId().longValue() == m.getId() ||
                     (t.getAssignedMachineId() == 0 && t.getMachineId().equals(m.getId())))
                     .collect(Collectors.toList());
-            List<TaskUsage> usageWithoutScheduled = allTaskUsageList.stream().filter(t -> jobListContainsId(jobList, t.getId()))
+            List<TaskUsage> usageWithoutScheduled = usageList.stream().filter(t -> !jobListContainsId(jobList, t.getId()))
                     .collect(Collectors.toList());
             TaskUsage machineLoad = TaskUsageCombiner.combineTaskUsageList(usageList, lowTime);
             TaskUsage machineLoadWithoutCurrent = TaskUsageCombiner.combineTaskUsageList(usageWithoutScheduled, lowTime);
@@ -125,6 +127,14 @@ public class FineTuner {
             }
         }
 
+        LOG.info("Writing usage error.");
+        writeUsageError(usageErrorMap, time);
+
+        LOG.info("Writing usage error.");
+        writeLoad(loadMap, time);
+
+        LOG.info("Writing scheduling errors.");
+        writeScheduleErrors(schedulingErrors, scheduledTasks, time);
 
         long idleCoalitions = 0;
         List<Coalition> coalitions = coalitionRepository.findAll();
@@ -138,16 +148,17 @@ public class FineTuner {
                 idleCoalitions++;
         }
 
+        LOG.info("Writing idle coalitions");
+        writeIdleCoalition(idleCoalitions, coalitions.size(), time);
 
-        writeResults(usageErrorMap, loadMap, idleCoalitions, coalitions.size(), schedulingErrors, scheduledTasks, runtimeErrors, time);
+
+//        writeResults(usageErrorMap, loadMap, idleCoalitions, coalitions.size(), schedulingErrors, scheduledTasks, runtimeErrors, time);
 
 
 
     }
 
-    private void writeResults(Map<Long, UsageError> usageErrorMap, Map<Long, TaskUsage> loadMap, long idleCoalitions, int coalitionSize, Long schedulingErrors, long scheduledTasks, List<Long> runtimeErrors, long time) {
-
-
+    private void writeUsageError(Map<Long, UsageError> usageErrorMap, long time){
         //USAGE PREDICTION ERROR
         File f = new File(testOutputPath + "usageError/" + time);
         UsageError average = UsageError.getZeroUsageError();
@@ -189,19 +200,22 @@ public class FineTuner {
                     e.printStackTrace();
                 }
         }
+    }
 
-
+    private void writeLoad(Map<Long, TaskUsage> loadMap, long time){
         //LOAD
-        f = new File(testOutputPath + "load/" + time);
+        File f = new File(testOutputPath + "load/machine");
         TaskUsage averageUsage = new TaskUsage();
-
+        FileWriter fileWriter = null;
+        boolean writeHeader = !f.exists();
         try {
-            fileWriter = new FileWriter(f);
-            fileWriter.write("%mID cpu maxCpu mem maxMem disk maxDisk");
+            fileWriter = new FileWriter(f, true);
+            if(writeHeader)
+                fileWriter.write("%time machine cpu maxCpu mem maxMem disk maxDisk\n");
             for(Long key : loadMap.keySet()){
                 TaskUsage load = loadMap.get(key);
                 averageUsage.addTaskUsage(load);
-                fileWriter.write(String.format("%d %s\n", key, load.loadForPlot()));
+                fileWriter.write(String.format("%d %d %s\n", time, key, load.loadForPlot()));
             }
             averageUsage.divide(loadMap.size());
 
@@ -215,12 +229,13 @@ public class FineTuner {
                     e.printStackTrace();
                 }
         }
+
         f = new File(testOutputPath + "load/average");
         writeHeader = !f.exists();
         try {
             fileWriter = new FileWriter(f, true);
             if(writeHeader)
-                fileWriter.write("%time cpu maxCpu mem maxMem disk maxDisk");
+                fileWriter.write("%time cpu maxCpu mem maxMem disk maxDisk\n");
             fileWriter.write(String.format("%d %s\n", time, averageUsage.loadForPlot()));
         } catch (IOException e) {
             e.printStackTrace();
@@ -232,15 +247,17 @@ public class FineTuner {
                     e.printStackTrace();
                 }
         }
+    }
 
-
+    private void writeIdleCoalition(long idleCoalitions, int coalitionSize, long time){
         //IDLE COALITIONS
-        f = new File(testOutputPath + "load/idle_coals");
-        writeHeader = !f.exists();
+        File f = new File(testOutputPath + "load/idle_coals");
+        FileWriter fileWriter = null;
+        boolean writeHeader = !f.exists();
         try {
             fileWriter = new FileWriter(f, true);
             if(writeHeader)
-                fileWriter.write("%time #idle_coals");
+                fileWriter.write("%time #idle_coals\n");
             fileWriter.write(String.format("%d %d %d\n", time, idleCoalitions, coalitionSize));
         } catch (IOException e) {
             e.printStackTrace();
@@ -252,13 +269,17 @@ public class FineTuner {
                     e.printStackTrace();
                 }
         }
+    }
 
-        f = new File(testOutputPath + "schedule/errors");
-        writeHeader = !f.exists();
+    private void writeScheduleErrors(Long schedulingErrors, long scheduledTasks, long time){
+
+        File f = new File(testOutputPath + "schedule/errors");
+        boolean writeHeader = !f.exists();
+        FileWriter fileWriter = null;
         try {
             fileWriter = new FileWriter(f, true);
             if(writeHeader)
-                fileWriter.write("%time #sched_errs #total");
+                fileWriter.write("%time #sched_errs #total\n");
             fileWriter.write(String.format("%d %d %d\n", time, schedulingErrors, scheduledTasks));
         } catch (IOException e) {
             e.printStackTrace();
@@ -270,17 +291,23 @@ public class FineTuner {
                     e.printStackTrace();
                 }
         }
+    }
+
+
+    private void writeJobRuntimeError(List<Long> runtimeErrors, long time) {
+
 
         Long runtimeError = 0L;
         for(Long l : runtimeErrors)
             runtimeError += l;
         double averageRError = runtimeError * 1.0/ runtimeErrors.size();
-        f = new File(testOutputPath + "runtime/errors");
-        writeHeader = !f.exists();
+        File f = new File(testOutputPath + "runtime/errors");
+        boolean writeHeader = !f.exists();
+        FileWriter fileWriter = null;
         try {
             fileWriter = new FileWriter(f, true);
             if(writeHeader)
-                fileWriter.write("%time #avg runtime error");
+                fileWriter.write("%time #avg runtime error\n");
             fileWriter.write(String.format("%d %.4f\n", time, averageRError));
         } catch (IOException e) {
             e.printStackTrace();
