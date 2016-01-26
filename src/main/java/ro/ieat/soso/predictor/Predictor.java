@@ -46,9 +46,11 @@ public  class Predictor {
 
         int i = 0;
         for(Machine m : machineRepository.findAll()){
-            if(m.getUsagePrediction().getStartTime() == historyStart
-                    && m.getUsagePrediction().getEndTime() == historyEnd){
-                return;
+            if(m.getUsagePrediction() != null) {
+                if (m.getUsagePrediction().getStartTime() == historyStart
+                        && m.getUsagePrediction().getEndTime() == historyEnd) {
+                    return;
+                }
             }
 
 

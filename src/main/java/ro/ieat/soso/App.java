@@ -33,9 +33,8 @@ public class App {
 
         SpringApplication.run(App.class, args);
         RestTemplate restTemplate = new RestTemplate();
-        restTemplate.getForObject("http://localhost:8088/app/init/1200/4200", String.class);
+        restTemplate.getForObject("http://localhost:8088/app/init/1200/6600", String.class);
         restTemplate.put("http://localhost:8088/app/start/3600/4200/4" , null);
-
 
 
     }
