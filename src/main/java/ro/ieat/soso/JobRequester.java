@@ -192,40 +192,25 @@ public class JobRequester {
             }
 
             LOG.info("Searching jobs between " + initEnd + " and " + time);
+            List<Job> jobs = jobRepository.findBySubmitTimeBetween(
+                    initEnd * Configuration.TIME_DIVISOR, time * Configuration.TIME_DIVISOR);
 
-            for (Job j : jobRepository.findBySubmitTimeBetween(
-                    initEnd * Configuration.TIME_DIVISOR, time * Configuration.TIME_DIVISOR)) {
+            LOG.info(String.format("Found %d jobs", jobs.size()));
+            for (Job j : jobs) {
 
                 //LOG.info("For job " + j.getJobId() + " status is " + j.getStatus() + " at time " + j.getSubmitTime());
 
                 if (j.getStatus().equals("finish")) {
-                    if (j.getSubmitTime() <= (time) * Configuration.TIME_DIVISOR) {
-                        //Predictor.predictJobRuntime(j.getLogicJobName(), initStart, time);
-                        ScheduledJob scheduledJob = coalitionClient.sendJobRequest(new Job(j, false));
-                        if (scheduledJob != null) {
-                            LOG.info("Scheduled job " + scheduledJob.getJobId());
-                        } else {
 
-                            LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
-                        }
+                    //Predictor.predictJobRuntime(j.getLogicJobName(), initStart, time);
+                    ScheduledJob scheduledJob = coalitionClient.sendJobRequest(new Job(j, false));
+                    if (scheduledJob != null) {
+                        LOG.info("Scheduled job " + scheduledJob.getJobId());
                     } else {
-                        template.put("http://localhost:8088/coalitions/update", null);
-                        //TODO Mechanism to predict.
-                        //Predictor.predictJobRuntime(j.getLogicJobName(), initStart, time);
-                        ScheduledJob scheduledJob = coalitionClient.sendJobRequest(new Job(j, true));
-                        if (scheduledJob != null) {
-                            LOG.info("Scheduled job " + scheduledJob.getJobId());
-                        } else {
 
-                            LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
-                        }
-
-                        if (endTime - time > Configuration.STEP) {
-                            time += Configuration.STEP;
-                        } else {
-                            break;
-                        }
+                        LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
                     }
+
                 } else {
                     //TODO Log this to machine usage...
                     LOG.info("Not sending " + j.getJobId() + " because status is " + j.getStatus() + " at time " + j.getSubmitTime());

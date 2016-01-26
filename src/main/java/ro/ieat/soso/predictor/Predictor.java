@@ -60,21 +60,22 @@ public  class Predictor {
 
 
 
-            int processed = 0;
             List<TaskUsage> predictedTaskUsageList = new ArrayList<>();
             int lastIndex = 0;
             if(usageList.size() > 0){
 
                 List<TaskPair> processedTasks = new ArrayList<>();
 
-                while(processed < usageList.size()){
+                while(lastIndex < usageList.size()){
                     TaskUsage taskUsage = usageList.get(lastIndex);
                     TaskPair tp = new TaskPair();
                     tp.jobId = taskUsage.getJobId();
                     tp.taskIndex = taskUsage.getTaskIndex();
 
-                    if(processedTasks.contains(tp))
+                    if(processedTasks.contains(tp)) {
+                        lastIndex++;
                         continue;
+                    }
 
                     List<TaskUsage> thisTaskUsageList = usageList.stream().filter(t -> t.getJobId() == taskUsage.getJobId() &&
                         t.getTaskIndex() == taskUsage.getTaskIndex()).collect(Collectors.toList());
@@ -82,7 +83,6 @@ public  class Predictor {
                     TaskUsage predicted = (TaskUsage) PredictionFactory.getPredictionMethod("machine").predict(thisTaskUsageList);
                     predictedTaskUsageList.add(predicted);
 
-                    processed++;
                     lastIndex++;
                     processedTasks.add(tp);
                 }
