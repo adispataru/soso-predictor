@@ -67,23 +67,28 @@ public  class Predictor {
             if(usageList.size() > 0){
                 TaskUsage lastTaskUsage = usageList.get(0);
 
-                queue.add(lastTaskUsage);
+
+                //This is wrong
+                //queue.add(lastTaskUsage);
+                List<TaskPair> processedTasks = new ArrayList<>();
                 while(processed < usageList.size()){
                     TaskUsage taskUsage = usageList.get(lastIndex);
-                    if(taskUsage.getJobId() == lastTaskUsage.getJobId() &&
-                            taskUsage.getTaskIndex() == lastTaskUsage.getTaskIndex()){
-                        queue.add(taskUsage);
+                    TaskPair tp = new TaskPair();
+                    tp.jobId = taskUsage.getJobId();
+                    tp.taskIndex = taskUsage.getTaskIndex();
 
-                    }else{
-                        if(!queue.isEmpty()){
-                            TaskUsage predicted = (TaskUsage) PredictionFactory.getPredictionMethod("machine").predict(queue);
-                            predictedTaskUsageList.add(predicted);
-                            queue.clear();
-                        }
-                        queue.add(taskUsage);
-                    }
+                    if(processedTasks.contains(tp))
+                        continue;
+
+                    List<TaskUsage> thisTaskUsageList = usageList.stream().filter(t -> t.getJobId() == taskUsage.getJobId() &&
+                        t.getTaskIndex() == taskUsage.getTaskIndex()).collect(Collectors.toList());
+
+                    TaskUsage predicted = (TaskUsage) PredictionFactory.getPredictionMethod("machine").predict(queue);
+                    predictedTaskUsageList.add(predicted);
+
                     processed++;
                     lastIndex++;
+                    processedTasks.add(tp);
                 }
             }else{
                 predictedTaskUsageList.add(new TaskUsage());
@@ -193,6 +198,19 @@ public  class Predictor {
         }
 
         return (Duration) PredictionFactory.getPredictionMethod("job").predict(durationList);
+    }
+
+    private static class TaskPair{
+        public long jobId;
+        public long taskIndex;
+
+        public boolean equals(Object o ){
+            if(o instanceof TaskPair){
+                TaskPair t = (TaskPair) o;
+                return t.jobId == this.jobId && t.taskIndex == this.taskIndex;
+            }
+            return false;
+        }
     }
 
 }
