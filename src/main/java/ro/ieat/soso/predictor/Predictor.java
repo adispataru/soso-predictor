@@ -43,9 +43,11 @@ public  class Predictor {
                 findByStartTimeGreaterThanAndEndTimeLessThan(historyStart * Configuration.TIME_DIVISOR - 1,
                         historyEnd * Configuration.TIME_DIVISOR + 1);
 
+        long start = System.currentTimeMillis();
 
         int i = 0;
-        for(Machine m : machineRepository.findAll()){
+        List<Machine> machines = machineRepository.findAll();
+        for(Machine m : machines){
             if(m.getUsagePrediction() != null) {
                 if (m.getUsagePrediction().getStartTime() == historyStart
                         && m.getUsagePrediction().getEndTime() == historyEnd) {
@@ -62,6 +64,7 @@ public  class Predictor {
 
             List<TaskUsage> predictedTaskUsageList = new ArrayList<>();
             int lastIndex = 0;
+
             if(usageList.size() > 0){
 
                 List<TaskPair> processedTasks = new ArrayList<>();
@@ -90,6 +93,7 @@ public  class Predictor {
                 predictedTaskUsageList.add(new TaskUsage());
             }
 
+
             TaskUsage machineUsage = new TaskUsage();
             for(TaskUsage tu : predictedTaskUsageList){
                 if(machineUsage.getEndTime() < tu.getEndTime())
@@ -110,9 +114,11 @@ public  class Predictor {
             }else{
                 m.setETA(Long.MAX_VALUE);
             }
-            machineRepository.save(m);
+//            LOG.info(usageList.size() + " Task usage prediction per machine (ms): " + (System.currentTimeMillis() - start) );
         }
-        Logger.getLogger("Predictor").info("machines with usage: " + i);
+        machineRepository.save(machines);
+        LOG.info("machines with usage: " + i);
+        LOG.info("Prediction time: " + (System.currentTimeMillis() - start));
 
 
     }

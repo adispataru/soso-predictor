@@ -27,6 +27,7 @@ import ro.ieat.soso.reasoning.controllers.CoalitionClient;
 
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -182,6 +183,7 @@ public class JobRequester {
         time = initEnd + Configuration.STEP;
         boolean updateCoalition = false;
         while(time <= endTime) {
+            long notScheduledJobs = 0;
             if(updateCoalition){
                 LOG.info("Predicting machine usage...");
                 predictionPath = "http://localhost:8088/predict/allUsage/" + initStart + "/" + initEnd;
@@ -207,24 +209,36 @@ public class JobRequester {
                     if (scheduledJob != null) {
                         LOG.info("Scheduled job " + scheduledJob.getJobId());
                     } else {
-
+                        notScheduledJobs += j.getTaskHistory().size();
                         LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
                     }
 
                 } else {
-                    //TODO Log this to machine usage...
                     LOG.info("Not sending " + j.getJobId() + " because status is " + j.getStatus() + " at time " + j.getSubmitTime());
                 }
             }
+            writeJobSchedulingErrors(notScheduledJobs, time);
 
             initEnd = time;
             time += Configuration.STEP;
             template.put("http://localhost:8088/finetuner/" + initEnd, 1);
             updateCoalition = true;
         }
+
         LOG.exiting("experiment", "JobRequester");
         LOG.info("Success!");
 
+
+    }
+
+    public void writeJobSchedulingErrors(long notScheduledJobs, long time){
+        try {
+            FileWriter fileWriter = new FileWriter("./output/results/schedule/not_planned_errors", true);
+            fileWriter.write(String.format("%d %d\n", time, notScheduledJobs));
+            fileWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
 }
