@@ -36,13 +36,13 @@ public class MachineUsageController {
 
         Logger LOG = Logger.getLogger("MachineUsageController");
         //Coalition coalition = coalitionRepository.findOne(id);
-        List<TaskUsage> taskUsageList = taskUsageMappingRepository.findByJobId(job.getJobId());
-
-        for(TaskUsage taskUsage : taskUsageList){
-            taskUsage.setAssignedMachineId(job.getTaskMachineMapping().get(taskUsage.getTaskIndex()));
-        }
-        taskUsageMappingRepository.save(taskUsageList);
-        LOG.info("Scheduling " + job.getJobId());
+//        List<TaskUsage> taskUsageList = taskUsageMappingRepository.findByJobId(job.getJobId());
+//
+//        for(TaskUsage taskUsage : taskUsageList){
+//            taskUsage.setAssignedMachineId(job.getTaskMachineMapping().get(taskUsage.getTaskIndex()));
+//        }
+//        taskUsageMappingRepository.save(taskUsageList);
+//        LOG.info("Scheduling " + job.getJobId());
 
         long jobId = job.getJobId();
         Job j = jobRepository.findOne(jobId);
