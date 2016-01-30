@@ -58,7 +58,7 @@ public class CoalitionReasoner {
         for (Machine m : machineRepository.findAll()) {
             reasonMachineRandomly(m, coalitionMap, time);
 //            LOG.info("Machine number: " + i);
-            if (i % size / 10 == 0)
+            if (i % (size / 10) == 0)
                 LOG.info(String.format("%.2f%%", i * 1.0 / size));
             i++;
         }
@@ -114,8 +114,8 @@ public class CoalitionReasoner {
         //machineProperties.setTaskUsageList(null);
 
         if (coalition.getMachines() == null)
-            coalition.setMachines(new ArrayList<Long>());
-        coalition.getMachines().add(machineProperties.getId());
+            coalition.setMachines(new ArrayList<Machine>());
+        coalition.getMachines().add(machineProperties);
 
 
 //        LOG.info("Min size for coalition " + minSize);
@@ -137,7 +137,7 @@ public class CoalitionReasoner {
                         coalition2.setJobs(new TreeMap<String, Long>());
                     if (coalition.getJobs() != null)
                         coalition2.getJobs().putAll(coalition.getJobs());
-                    coalition2.getMachines().add(machineProperties.getId());
+                    coalition2.getMachines().add(machineProperties);
                 }
             }
         }
@@ -157,11 +157,12 @@ public class CoalitionReasoner {
 
     public int update(Coalition coalition, long time) {
 
-        for(Long m : coalition.getMachines()){
-            Machine mp = machineRepository.findOne(m);
+        for(int i = 0; i < coalition.getMachines().size(); i++){
+            Machine mp = machineRepository.findOne(coalition.getMachines().get(i).getId());
 
             if(mp.getETA() > coalition.getCurrentETA())
                 coalition.setCurrentETA(mp.getETA());
+            coalition.getMachines().set(i, mp);
 
             //Check availability of machine
             //The else case was treated in the previous 'for loop' to avoid the same computation

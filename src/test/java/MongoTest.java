@@ -31,10 +31,10 @@ public class MongoTest {
     public void test(){
         Coalition c = new Coalition();
         c.setLogicJobName("ala bala");
-        c.setMachines(new ArrayList<Long>());
+        c.setMachines(new ArrayList<Machine>());
         Machine m = new Machine(1, 0.5, 0.5);
 
-        c.getMachines().add(m.getId());
+        c.getMachines().add(m);
         coalitionRepository.save(c);
         Coalition c2 = coalitionRepository.findAll().get(0);
         Assert.assertEquals(c2.getLogicJobName(), c.getLogicJobName());

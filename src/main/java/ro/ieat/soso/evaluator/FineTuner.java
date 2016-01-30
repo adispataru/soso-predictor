@@ -140,8 +140,8 @@ public class FineTuner {
         List<Coalition> coalitions = coalitionRepository.findAll();
         for(Coalition c : coalitions){
             long totalIdle = 0;
-            for(Long machineId : c.getMachines()){
-                if(loadMap.get(machineId).getCpu() < IDLE_THRESHOLD)
+            for(Machine machineId : c.getMachines()){
+                if(loadMap.get(machineId.getId()).getCpu() < IDLE_THRESHOLD)
                     totalIdle++;
             }
             if(totalIdle == c.getMachines().size())
