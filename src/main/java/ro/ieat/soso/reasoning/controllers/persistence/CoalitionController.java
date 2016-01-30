@@ -19,6 +19,7 @@ public class CoalitionController {
     @Autowired
     CoalitionRepository coalitionRepository;
     public static String coalitionTargetUrl = "http://localhost:8090/coalition";
+    public static String coalitionTargetUrl2 = "http://localhost:8091/coalition";
 
     @RequestMapping(method = RequestMethod.POST, path = "/coalitions", consumes = "application/json")
     public Coalition updateCoalition(@RequestBody Coalition c){
@@ -29,8 +30,8 @@ public class CoalitionController {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         restTemplate.postForObject(coalitionTargetUrl, c, Coalition.class, headers);
+        restTemplate.postForObject(coalitionTargetUrl2, c, Coalition.class, headers);
         return c;
-
     }
 
     @RequestMapping(method = RequestMethod.GET, path = "/coalitions/size")
