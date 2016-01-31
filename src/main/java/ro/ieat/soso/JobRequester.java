@@ -155,6 +155,7 @@ public class JobRequester {
     public void jobRequestFlow(@PathVariable long startTime, @PathVariable long endTime, @PathVariable int historySize) throws Exception{
 
         coalitionClient.deleteCoalitionsFromRepository();
+        scheduledRepository.deleteAll();
 
 
         long initStart = startTime - Configuration.STEP * historySize, initEnd = startTime;
