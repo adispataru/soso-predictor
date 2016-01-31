@@ -69,9 +69,9 @@ public class FineTuner {
     }
 
 
-    public boolean isTaskScheduledOnMachine(long jobId, long taskIndex, long machineId, String scheduleType){
+    public boolean isTaskScheduledOnMachine(long jobId, long taskIndex, long machineId, String scheduleType) {
         ScheduledJob sch = scheduledRepository.findByJobIdAndScheduleType(jobId, scheduleType).get(0);
-        return sch.getTaskMachineMapping().get(taskIndex) == machineId;
+        return sch != null && sch.getTaskMachineMapping().get(taskIndex) == machineId;
     }
 
     private static long getJobScheduleTime(List<Job> list, long jobId){
