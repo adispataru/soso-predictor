@@ -10,6 +10,7 @@ import ro.ieat.soso.core.coalitions.Coalition;
 import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.config.Configuration;
 import ro.ieat.soso.core.jobs.Job;
+import ro.ieat.soso.core.jobs.ScheduledJob;
 import ro.ieat.soso.core.jobs.TaskUsage;
 import ro.ieat.soso.persistence.*;
 import ro.ieat.soso.predictor.prediction.JobDuration;
@@ -41,6 +42,9 @@ public class FineTuner {
     JobRepository jobRepository;
     @Autowired
     JobDurationRepository jobDurationRepository;
+
+    @Autowired
+    ScheduledRepository scheduledRepository;
     private static final Double THRESHOLD = 1.0;
     private static final Double IDLE_THRESHOLD = 0.05;
 
@@ -64,6 +68,20 @@ public class FineTuner {
         return false;
     }
 
+
+    public boolean isTaskScheduledOnMachine(long jobId, long taskIndex, long machineId, String scheduleType){
+        ScheduledJob sch = scheduledRepository.findByJobIdAndScheduleType(jobId, scheduleType).get(0);
+        return sch.getTaskMachineMapping().get(taskIndex) == machineId;
+    }
+
+    private static long getJobScheduleTime(List<Job> list, long jobId){
+        for(Job j : list)
+            if (j.getJobId() == jobId)
+                return j.getScheduleTime();
+        return 0;
+    }
+
+
     @RequestMapping(method = RequestMethod.PUT, path = "/finetuner/{time}")
     public void fineTuneAndWriteResults(@PathVariable Long time){
 
@@ -75,8 +93,10 @@ public class FineTuner {
         LOG.info("This window tasks number: " + allTaskUsageList.size());
 
         Map<Long, TaskUsage> loadMap = new TreeMap<>();
+        Map<Long, TaskUsage> loadMapRandom = new TreeMap<>();
         Map<Long, UsageError> usageErrorMap = new TreeMap<>();
         Long schedulingErrors = 0L;
+        Long schedulingErrorsRandom = 0L;
         List<Long> jobIds = new ArrayList<>();
         List<Job> jobList = jobRepository.findBySubmitTimeBetween(lowTime, time);
         List<JobDuration> jobDurations = jobDurationRepository.findBySubmitTimeBetween(lowTime, time);
@@ -91,23 +111,52 @@ public class FineTuner {
                 }
             }
         }
+        List<ScheduledJob> scheduledJobs = scheduledRepository.findBySubmitTimeBetween(lowTime, time);
+
+        List<Long> latenessList = new ArrayList<>();
+        List<Long> latenessListRandom = new ArrayList<>();
+        for(ScheduledJob j : scheduledJobs){
+            long real = getJobScheduleTime(jobList, j.getJobId());
+            if(j.getScheduleType().equals("rb-tree"))
+                latenessList.add(j.getTimeToStart() - real);
+            else
+                latenessListRandom.add(j.getTimeToStart() - real);
+        }
+
 
 
         for(Machine m : machineRepository.findAll()){
 
-            List<TaskUsage> usageList = allTaskUsageList.stream().filter(t -> t.getAssignedMachineId().longValue() == m.getId() ||
-                    (t.getAssignedMachineId() == 0 && t.getMachineId().equals(m.getId())))
+            List<TaskUsage> usageList = allTaskUsageList.stream().filter(t ->
+                    isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), "rb-tree"))
                     .collect(Collectors.toList());
+
+            List<TaskUsage> usageListRandom = allTaskUsageList.stream().filter(t ->
+                    isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), "random"))
+                    .collect(Collectors.toList());
+
             List<TaskUsage> usageWithoutScheduled = usageList.stream().filter(t -> !jobListContainsId(jobList, t.getId()))
                     .collect(Collectors.toList());
-            TaskUsage machineLoad = TaskUsageCombiner.combineTaskUsageList(usageList, lowTime);
-            TaskUsage machineLoadWithoutCurrent = TaskUsageCombiner.combineTaskUsageList(usageWithoutScheduled, lowTime);
+
+
+
+
+            TaskUsage machineLoad = TaskUsageCombiner.combineTaskUsageList(usageList, lowTime, jobList, scheduledJobs, "rb-tree");
+            TaskUsage machineLoadWithoutCurrent = TaskUsageCombiner.combineTaskUsageList(usageWithoutScheduled, lowTime, jobList, scheduledJobs, "rb-tree");
+
+            TaskUsage machineLoadRandom = TaskUsageCombiner.combineTaskUsageList(usageListRandom, lowTime, jobList, scheduledJobs, "random");
+            TaskUsage machineLoadWithoutCurrentRandom = TaskUsageCombiner.combineTaskUsageList(usageWithoutScheduled, lowTime, jobList, scheduledJobs, "random");
 
             TaskUsage machineUsage = new TaskUsage();
             machineUsage.addTaskUsage(machineLoad);
+            TaskUsage machineUsageRandom = new TaskUsage();
+            machineUsageRandom.addTaskUsage(machineLoadRandom);
             machineLoad.divideCPU(m.getCpu());
+            machineLoadRandom.divideCPU(m.getCpu());
             machineLoad.divideMemory(m.getMemory());
+            machineLoadRandom.divideMemory(m.getMemory());
             loadMap.put(m.getId(), machineLoad);
+            loadMapRandom.put(m.getId(), machineLoadRandom);
             usageErrorMap.put(m.getId(), new UsageError(machineLoadWithoutCurrent, m.getUsagePrediction()));
 //            LOG.info(machineLoad.getCpu() + " <- cpu");
 
@@ -125,31 +174,53 @@ public class FineTuner {
                 }
                 i--;
             }
+
+            i = usageListRandom.size() - 1;
+            while((machineUsageRandom.getCpu() > THRESHOLD * m.getCpu() ||
+                    machineUsageRandom.getMemory() > THRESHOLD * m.getMemory()) && i >= 0) {
+                LOG.info("Machine usage" + machineUsageRandom.getCpu() + " " + machineUsageRandom.getMemory() +
+                        "\nMachine capacity " + m.getCpu() + " " + m.getMemory());
+
+                machineUsage.substractTaskUsage(usageListRandom.get(i));
+                schedulingErrorsRandom++;
+
+                i--;
+            }
         }
 
         LOG.info("Writing usage error.");
         writeUsageError(usageErrorMap, time);
 
-        LOG.info("Writing usage error.");
-        writeLoad(loadMap, time);
+        LOG.info("Writing load.");
+        writeLoad(loadMap, time, "rb-tree");
+        writeLoad(loadMapRandom, time, "random");
 
         LOG.info("Writing scheduling errors.");
-        writeScheduleErrors(schedulingErrors, scheduledTasks, time);
+        writeScheduleErrors(schedulingErrors, scheduledTasks, time, "rb-tree");
+        writeScheduleErrors(schedulingErrorsRandom, scheduledTasks, time, "random");
 
         long idleCoalitions = 0;
+        long idleCoalitionsRandom = 0;
         List<Coalition> coalitions = coalitionRepository.findAll();
         for(Coalition c : coalitions){
             long totalIdle = 0;
+            long totalIdleRandom = 0;
             for(Machine machineId : c.getMachines()){
                 if(loadMap.get(machineId.getId()).getCpu() < IDLE_THRESHOLD)
                     totalIdle++;
+                if(loadMapRandom.get(machineId.getId()).getCpu() < IDLE_THRESHOLD)
+                    totalIdleRandom++;
             }
             if(totalIdle == c.getMachines().size())
                 idleCoalitions++;
+            if(totalIdleRandom == c.getMachines().size())
+                idleCoalitionsRandom++;
         }
 
         LOG.info("Writing idle coalitions");
-        writeIdleCoalition(idleCoalitions, coalitions.size(), time);
+        writeIdleCoalition(idleCoalitions, coalitions.size(), time, "rb-tree");
+        writeIdleCoalition(idleCoalitionsRandom, coalitions.size(), time, "random");
+        writeLateness(latenessList, latenessListRandom, time);
 
 
 //        writeResults(usageErrorMap, loadMap, idleCoalitions, coalitions.size(), schedulingErrors, scheduledTasks, runtimeErrors, time);
@@ -157,6 +228,38 @@ public class FineTuner {
 
 
     }
+
+    private void writeLateness(List<Long> latenessList, List<Long> latenessListRandom, Long time) {
+        Long lateTotal = 0L;
+        for(Long l : latenessList)
+            lateTotal += l;
+        double averageRError = lateTotal * 1.0/ latenessList.size();
+        Long lateTotalRandom = 0L;
+        for(Long l : latenessListRandom)
+            lateTotalRandom += l;
+        double averageRErrorRandom = lateTotalRandom * 1.0/ latenessListRandom.size();
+
+        File f = new File(testOutputPath + "lateness");
+        boolean writeHeader = !f.exists();
+        FileWriter fileWriter = null;
+        try {
+            fileWriter = new FileWriter(f, true);
+            if(writeHeader)
+                fileWriter.write("%time lateRB lateRandom totalRB totalRandom\n");
+            fileWriter.write(String.format("%d %.4f %.4f %d %d\n",
+                    time, averageRError, averageRErrorRandom, lateTotal, lateTotalRandom));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }finally {
+            if(fileWriter != null)
+                try {
+                    fileWriter.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+        }
+    }
+
 
     private void writeUsageError(Map<Long, UsageError> usageErrorMap, long time){
         //USAGE PREDICTION ERROR
@@ -202,9 +305,9 @@ public class FineTuner {
         }
     }
 
-    private void writeLoad(Map<Long, TaskUsage> loadMap, long time){
+    private void writeLoad(Map<Long, TaskUsage> loadMap, long time, String type){
         //LOAD
-        File f = new File(testOutputPath + "load/machine");
+        File f = new File(testOutputPath + "load/" + type + "/machine");
         TaskUsage averageUsage = new TaskUsage();
         FileWriter fileWriter = null;
         boolean writeHeader = !f.exists();
@@ -217,6 +320,7 @@ public class FineTuner {
                 averageUsage.addTaskUsage(load);
                 fileWriter.write(String.format("%d %d %s\n", time, key, load.loadForPlot()));
             }
+            fileWriter.write("\n");
             averageUsage.divide(loadMap.size());
 
         } catch (IOException e) {
@@ -230,7 +334,7 @@ public class FineTuner {
                 }
         }
 
-        f = new File(testOutputPath + "load/average");
+        f = new File(testOutputPath + "load/" + type + "/average");
         writeHeader = !f.exists();
         try {
             fileWriter = new FileWriter(f, true);
@@ -249,15 +353,15 @@ public class FineTuner {
         }
     }
 
-    private void writeIdleCoalition(long idleCoalitions, int coalitionSize, long time){
+    private void writeIdleCoalition(long idleCoalitions, int coalitionSize, long time, String type){
         //IDLE COALITIONS
-        File f = new File(testOutputPath + "load/idle_coals");
+        File f = new File(testOutputPath + "load/" + type + "/idle_coals");
         FileWriter fileWriter = null;
         boolean writeHeader = !f.exists();
         try {
             fileWriter = new FileWriter(f, true);
             if(writeHeader)
-                fileWriter.write("%time #idle_coals\n");
+                fileWriter.write("%time #idle_coals #total\n");
             fileWriter.write(String.format("%d %d %d\n", time, idleCoalitions, coalitionSize));
         } catch (IOException e) {
             e.printStackTrace();
@@ -271,9 +375,9 @@ public class FineTuner {
         }
     }
 
-    private void writeScheduleErrors(Long schedulingErrors, long scheduledTasks, long time){
+    private void writeScheduleErrors(Long schedulingErrors, long scheduledTasks, long time, String type){
 
-        File f = new File(testOutputPath + "schedule/errors");
+        File f = new File(testOutputPath + "schedule/" + type + "/errors");
         boolean writeHeader = !f.exists();
         FileWriter fileWriter = null;
         try {

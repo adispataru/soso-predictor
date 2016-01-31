@@ -19,6 +19,7 @@ import ro.ieat.soso.core.mappers.TaskUsageMapper;
 import ro.ieat.soso.core.prediction.PredictionMethod;
 import ro.ieat.soso.persistence.JobRepository;
 import ro.ieat.soso.persistence.MachineRepository;
+import ro.ieat.soso.persistence.ScheduledRepository;
 import ro.ieat.soso.persistence.TaskUsageMappingRepository;
 import ro.ieat.soso.predictor.prediction.PredictionFactory;
 import ro.ieat.soso.predictor.prediction.duration.PessimisticDurationPrediction;
@@ -55,6 +56,9 @@ public class JobRequester {
 
     @Autowired
     TaskUsageMappingRepository taskUsageMappingRepository;
+
+    @Autowired
+    ScheduledRepository scheduledRepository;
 
 
 
@@ -184,6 +188,7 @@ public class JobRequester {
         boolean updateCoalition = false;
         while(time <= endTime) {
             long notScheduledJobs = 0;
+            long notScheduledJobs2 = 0;
             if(updateCoalition){
                 LOG.info("Predicting machine usage...");
                 predictionPath = "http://localhost:8088/predict/allUsage/" + initStart + "/" + initEnd;
@@ -197,6 +202,9 @@ public class JobRequester {
             List<Job> jobs = jobRepository.findBySubmitTimeBetween(
                     initEnd * Configuration.TIME_DIVISOR, time * Configuration.TIME_DIVISOR);
 
+            String jobRequestTargetUrl1 = "http://localhost:8090/job";
+            String jobRequestTargetUrl2 = "http://localhost:8091/job";
+
             LOG.info(String.format("Found %d jobs", jobs.size()));
             for (Job j : jobs) {
 
@@ -204,12 +212,25 @@ public class JobRequester {
 
                 if (j.getStatus().equals("finish")) {
 
-                    //Predictor.predictJobRuntime(j.getLogicJobName(), initStart, time);
-                    ScheduledJob scheduledJob = coalitionClient.sendJobRequest(new Job(j, false));
+                    //Send job request to main matcher
+                    ScheduledJob scheduledJob = coalitionClient.sendJobRequest(new Job(j, false), jobRequestTargetUrl1);
                     if (scheduledJob != null) {
                         LOG.info("Scheduled job " + scheduledJob.getJobId());
+                        scheduledJob.setScheduleType("rb-tree");
+                        scheduledRepository.save(scheduledJob);
                     } else {
                         notScheduledJobs += j.getTaskHistory().size();
+                        LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
+                    }
+
+                    //Send job request to random matcher
+                    ScheduledJob scheduledJob2 = coalitionClient.sendJobRequest(new Job(j, false), jobRequestTargetUrl2);
+                    if (scheduledJob2 != null) {
+                        LOG.info("Scheduled job " + scheduledJob2.getJobId());
+                        scheduledJob2.setScheduleType("random");
+                        scheduledRepository.save(scheduledJob2);
+                    } else {
+                        notScheduledJobs2 += j.getTaskHistory().size();
                         LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
                     }
 
@@ -217,7 +238,7 @@ public class JobRequester {
                     LOG.info("Not sending " + j.getJobId() + " because status is " + j.getStatus() + " at time " + j.getSubmitTime());
                 }
             }
-            writeJobSchedulingErrors(notScheduledJobs, time);
+            writeJobSchedulingErrors(notScheduledJobs, notScheduledJobs2, time);
 
             initEnd = time;
             time += Configuration.STEP;
@@ -231,10 +252,10 @@ public class JobRequester {
 
     }
 
-    public void writeJobSchedulingErrors(long notScheduledJobs, long time){
+    public void writeJobSchedulingErrors(long notScheduledJobs, long notScheduledJobs2, long time){
         try {
             FileWriter fileWriter = new FileWriter("./output/results/schedule/not_planned_errors", true);
-            fileWriter.write(String.format("%d %d\n", time, notScheduledJobs));
+            fileWriter.write(String.format("%d %d %d\n", time, notScheduledJobs, notScheduledJobs2));
             fileWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
