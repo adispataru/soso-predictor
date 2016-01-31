@@ -69,9 +69,14 @@ public class FineTuner {
     }
 
 
-    public boolean isTaskScheduledOnMachine(long jobId, long taskIndex, long machineId, String scheduleType) {
-        ScheduledJob sch = scheduledRepository.findByJobIdAndScheduleType(jobId, scheduleType);
-        return sch != null && sch.getTaskMachineMapping().get(taskIndex) == machineId;
+
+    public boolean isTaskScheduledOnMachine(long jobId, long taskIndex, long machineId, List<ScheduledJob> list) {
+        for(ScheduledJob scheduledJob : list){
+            if(scheduledJob.getJobId() == jobId)
+                return scheduledJob.getTaskMachineMapping().get(taskIndex) == machineId;
+        }
+        return false;
+
     }
 
     private static long getJobScheduleTime(List<Job> list, long jobId){
@@ -111,7 +116,9 @@ public class FineTuner {
                 }
             }
         }
-        List<ScheduledJob> scheduledJobs = scheduledRepository.findBySubmitTimeBetween(lowTime, time);
+
+        List<ScheduledJob> scheduledJobs = scheduledRepository.findByScheduleType("rb-tree");
+        List<ScheduledJob> scheduledJobsRandom = scheduledRepository.findByScheduleType("random");
 
         List<Long> latenessList = new ArrayList<>();
         List<Long> latenessListRandom = new ArrayList<>();
@@ -128,11 +135,11 @@ public class FineTuner {
         for(Machine m : machineRepository.findAll()){
 
             List<TaskUsage> usageList = allTaskUsageList.stream().filter(t ->
-                    isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), "rb-tree"))
+                    isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobs))
                     .collect(Collectors.toList());
 
             List<TaskUsage> usageListRandom = allTaskUsageList.stream().filter(t ->
-                    isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), "random"))
+                    isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobsRandom))
                     .collect(Collectors.toList());
 
             List<TaskUsage> usageWithoutScheduled = usageList.stream().filter(t -> !jobListContainsId(jobList, t.getId()))
