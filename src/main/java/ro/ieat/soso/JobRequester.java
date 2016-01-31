@@ -30,10 +30,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -156,6 +153,7 @@ public class JobRequester {
 
         coalitionClient.deleteCoalitionsFromRepository();
         scheduledRepository.deleteAll();
+        long scheduledId = 0;
 
 
         long initStart = startTime - Configuration.STEP * historySize, initEnd = startTime;
@@ -217,6 +215,7 @@ public class JobRequester {
                     ScheduledJob scheduledJob = coalitionClient.sendJobRequest(new Job(j, false), jobRequestTargetUrl1);
                     if (scheduledJob != null) {
                         LOG.info("Scheduled job " + scheduledJob.getJobId());
+                        scheduledJob.setId(scheduledId++);
                         scheduledJob.setScheduleType("rb-tree");
                         scheduledRepository.save(scheduledJob);
                     } else {
@@ -228,6 +227,7 @@ public class JobRequester {
                     ScheduledJob scheduledJob2 = coalitionClient.sendJobRequest(new Job(j, false), jobRequestTargetUrl2);
                     if (scheduledJob2 != null) {
                         LOG.info("Scheduled job " + scheduledJob2.getJobId());
+                        scheduledJob2.setId(scheduledId++);
                         scheduledJob2.setScheduleType("random");
                         scheduledRepository.save(scheduledJob2);
                     } else {
