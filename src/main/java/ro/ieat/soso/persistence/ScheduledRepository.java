@@ -12,5 +12,5 @@ import java.util.List;
  */
 public interface ScheduledRepository extends MongoRepository<ScheduledJob, Long>{
     List<ScheduledJob> findBySubmitTimeBetween(Long min, Long max);
-    List<ScheduledJob> findByJobIdAndScheduleType(Long jobId, String scheduleType);
+    ScheduledJob findByJobIdAndScheduleType(Long jobId, String scheduleType);
 }

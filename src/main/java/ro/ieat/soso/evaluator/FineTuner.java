@@ -70,7 +70,7 @@ public class FineTuner {
 
 
     public boolean isTaskScheduledOnMachine(long jobId, long taskIndex, long machineId, String scheduleType) {
-        ScheduledJob sch = scheduledRepository.findByJobIdAndScheduleType(jobId, scheduleType).get(0);
+        ScheduledJob sch = scheduledRepository.findByJobIdAndScheduleType(jobId, scheduleType);
         return sch != null && sch.getTaskMachineMapping().get(taskIndex) == machineId;
     }
 
