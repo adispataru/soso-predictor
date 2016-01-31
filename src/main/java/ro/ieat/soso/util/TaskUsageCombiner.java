@@ -6,6 +6,7 @@ import ro.ieat.soso.core.jobs.ScheduledJob;
 import ro.ieat.soso.core.jobs.TaskUsage;
 
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Created by adrian on 25.01.2016.
@@ -25,6 +26,11 @@ public class TaskUsageCombiner {
             long sch = getTimeToStartByJobIdAndScheduleType(taskUsage.getJobId(), type, scheduledJobs);
             long jobStart = getJobScheduleTime(jobs, taskUsage.getJobId());
             long offset = (sch - jobStart) / Configuration.TIME_DIVISOR;
+            if(Math.abs(offset) > 300) {
+                Logger.getLogger("Combiner").info("job " + taskUsage.getJobId() + " has offset " + offset);
+                Logger.getLogger("Combiner").info("job start" + jobStart + "; scheduled start " + sch);
+                continue;
+            }
             long thisTaskStart = taskUsage.getStartTime() / Configuration.TIME_DIVISOR - startTime;
             long thisTaskEnd = taskUsage.getEndTime() / Configuration.TIME_DIVISOR - startTime;
             for(long i = thisTaskStart + offset; i < thisTaskEnd + offset && i < 300; i++){
