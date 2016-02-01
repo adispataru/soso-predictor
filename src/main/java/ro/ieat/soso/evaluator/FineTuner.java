@@ -70,10 +70,10 @@ public class FineTuner {
 
 
 
-    public boolean isTaskScheduledOnMachine(long jobId, long taskIndex, long machineId, List<ScheduledJob> list) {
+    public boolean isTaskScheduledOnMachine(long jobId, Long taskIndex, Long machineId, List<ScheduledJob> list) {
         for(ScheduledJob scheduledJob : list){
             if(scheduledJob.getJobId() == jobId)
-                return scheduledJob.getTaskMachineMapping().get(taskIndex) == machineId;
+                return scheduledJob.getTaskMachineMapping().get(taskIndex).equals(machineId);
         }
         return false;
 
@@ -121,6 +121,7 @@ public class FineTuner {
 
         List<ScheduledJob> scheduledJobs = scheduledRepository.findByScheduleType("rb-tree");
         List<ScheduledJob> scheduledJobsRandom = scheduledRepository.findByScheduleType("random");
+        LOG.severe("Scheduled tasks:\nrandom: " + scheduledJobsRandom.size() + "\nrb-tree: " + scheduledJobs.size());
 
         List<Long> latenessList = new ArrayList<>();
         List<Long> latenessListRandom = new ArrayList<>();
