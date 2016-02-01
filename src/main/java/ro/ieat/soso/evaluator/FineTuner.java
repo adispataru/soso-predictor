@@ -314,6 +314,9 @@ public class FineTuner {
 
     private void writeLoad(Map<Long, TaskUsage> loadMap, long time, String type){
         //LOAD
+        File dir = new File(testOutputPath + "load/" + type);
+        if(!dir.exists())
+            dir.mkdirs();
         File f = new File(testOutputPath + "load/" + type + "/machine");
         TaskUsage averageUsage = new TaskUsage();
         FileWriter fileWriter = null;
@@ -383,6 +386,9 @@ public class FineTuner {
     }
 
     private void writeScheduleErrors(Long schedulingErrors, long scheduledTasks, long time, String type){
+        File dir = new File(testOutputPath + "schedule/" + type);
+        if(!dir.exists())
+            dir.mkdirs();
 
         File f = new File(testOutputPath + "schedule/" + type + "/errors");
         boolean writeHeader = !f.exists();
