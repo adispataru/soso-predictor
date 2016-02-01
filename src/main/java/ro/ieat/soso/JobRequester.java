@@ -137,12 +137,13 @@ public class JobRequester {
             }
         }else {
             LOG.info("Jobs data existent in mongo.");
-            LOG.info("Setting assigned machine id to 0. ");
-            for(TaskUsage usage : taskUsageMappingRepository.findAll().stream().
-                    filter(t -> t.getAssignedMachineId() != 0).collect(Collectors.toList())){
-                usage.setAssignedMachineId(0L);
-                taskUsageMappingRepository.save(usage);
-            }
+            //Not needed anymore
+//            LOG.info("Setting assigned machine id to 0. ");
+//            for(TaskUsage usage : taskUsageMappingRepository.findAll().stream().
+//                    filter(t -> t.getAssignedMachineId() != 0).collect(Collectors.toList())){
+//                usage.setAssignedMachineId(0L);
+//                taskUsageMappingRepository.save(usage);
+//            }
             LOG.info("Done. ");
         }
         return "Done.";
