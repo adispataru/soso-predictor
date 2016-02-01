@@ -130,6 +130,12 @@ public class FineTuner {
 //        }
 
         long scheduledTasks = 0;
+        long scheduledTasksRandom = 0;
+        long totalTasks = 0;
+
+        for(Job j : jobList){
+            totalTasks += j.getTaskHistory().size();
+        }
 
 
         List<ScheduledJob> scheduledJobs = scheduledRepository.findByScheduleType("rb-tree");
@@ -140,10 +146,14 @@ public class FineTuner {
         List<Long> latenessListRandom = new ArrayList<>();
         for(ScheduledJob j : scheduledJobs){
             long real = getJobScheduleTime(jobList, j.getJobId());
-            if(j.getScheduleType().equals("rb-tree"))
+            if(j.getScheduleType().equals("rb-tree")) {
                 latenessList.add(j.getTimeToStart() - real);
-            else
+                scheduledTasks += j.getTaskMachineMapping().size();
+            }
+            else {
                 latenessListRandom.add(j.getTimeToStart() - real);
+                scheduledTasksRandom += j.getTaskMachineMapping().size();
+            }
         }
 
 
@@ -241,8 +251,8 @@ public class FineTuner {
         writeLoad(loadMapRandom, time, "random");
 
         LOG.info("Writing scheduling errors.");
-        writeScheduleErrors(schedulingErrors, scheduledTasks, time, "rb-tree");
-        writeScheduleErrors(schedulingErrorsRandom, scheduledTasks, time, "random");
+        writeScheduleErrors(schedulingErrors, scheduledTasks, totalTasks, time, "rb-tree");
+        writeScheduleErrors(schedulingErrorsRandom, scheduledTasksRandom, totalTasks, time, "random");
 
         long idleCoalitions = 0;
         long idleCoalitionsRandom = 0;
@@ -431,7 +441,7 @@ public class FineTuner {
         }
     }
 
-    private void writeScheduleErrors(Long schedulingErrors, long scheduledTasks, long time, String type){
+    private void writeScheduleErrors(Long schedulingErrors, long scheduledTasks,long totalTasks, long time, String type){
         File dir = new File(testOutputPath + "schedule/" + type);
         if(!dir.exists())
             dir.mkdirs();
@@ -442,7 +452,7 @@ public class FineTuner {
         try {
             fileWriter = new FileWriter(f, true);
             if(writeHeader)
-                fileWriter.write("%time #sched_errs #total\n");
+                fileWriter.write("%time #sched_errs #scheduled_now #total\n");
             fileWriter.write(String.format("%d %d %d\n", time, schedulingErrors, scheduledTasks));
         } catch (IOException e) {
             e.printStackTrace();
