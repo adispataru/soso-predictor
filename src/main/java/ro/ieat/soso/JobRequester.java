@@ -46,7 +46,7 @@ public class JobRequester {
     private static final Logger LOG = Logger.getLogger("JobRequester");
     private CoalitionClient coalitionClient = new CoalitionClient();
     private static long taskUsageCounter = 0;
-    RestTemplate template = new RestTemplate();
+    RestTemplate template;
     @Autowired
     MachineRepository machineRepository;
 
@@ -165,6 +165,7 @@ public class JobRequester {
         PredictionFactory.setPredictionMethod("machine", machinePredictionMethod);
         PredictionFactory.setPredictionMethod("job", jobPredictionMethod);
 
+        template = new RestTemplate();
         long time = System.currentTimeMillis();
         LOG.info("Predicting machine usage...");
         String predictionPath = "http://localhost:8088/predict/allUsage/" + initStart + "/" + initEnd;
@@ -255,6 +256,7 @@ public class JobRequester {
 
             initEnd = time;
             time += Configuration.STEP;
+            template = new RestTemplate();
             template.put("http://localhost:8088/finetuner/" + initEnd, 1);
             updateCoalition = true;
         }

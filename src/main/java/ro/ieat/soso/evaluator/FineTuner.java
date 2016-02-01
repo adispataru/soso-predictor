@@ -286,8 +286,6 @@ public class FineTuner {
 
 //        writeResults(usageErrorMap, loadMap, idleCoalitions, coalitions.size(), schedulingErrors, scheduledTasks, runtimeErrors, time);
 
-
-
     }
 
     private void logOvercommit(Logger LOG, int i) {
