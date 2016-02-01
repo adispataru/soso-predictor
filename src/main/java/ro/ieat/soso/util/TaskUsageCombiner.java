@@ -25,12 +25,13 @@ public class TaskUsageCombiner {
         for(TaskUsage taskUsage : usageList){
             long sch = getTimeToStartByJobIdAndScheduleType(taskUsage.getJobId(), type, scheduledJobs);
             long jobStart = getJobScheduleTime(jobs, taskUsage.getJobId());
-            long offset = (sch - jobStart) / Configuration.TIME_DIVISOR;
-            if(Math.abs(offset) > 300) {
-                Logger.getLogger("Combiner").info("job " + taskUsage.getJobId() + " has offset " + offset);
-                Logger.getLogger("Combiner").info("job start" + jobStart + "; scheduled start " + sch);
-                continue;
-            }
+//            long offset = (sch - jobStart) / Configuration.TIME_DIVISOR;
+//            if(Math.abs(offset) > 300) {
+//                Logger.getLogger("Combiner").info("job " + taskUsage.getJobId() + " has offset " + offset);
+//                Logger.getLogger("Combiner").info("job start" + jobStart + "; scheduled start " + sch);
+//                continue;
+//            }
+            long offset = 0;
             long thisTaskStart = taskUsage.getStartTime() / Configuration.TIME_DIVISOR - startTime;
             long thisTaskEnd = taskUsage.getEndTime() / Configuration.TIME_DIVISOR - startTime;
             for(long i = thisTaskStart + offset; i < thisTaskEnd + offset && i < 300; i++){
