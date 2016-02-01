@@ -48,8 +48,8 @@ public class CoalitionClient{
         restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        restTemplate.postForObject("http://localhost:8090", jobs, List.class, headers);
-        restTemplate.postForObject("http://localhost:8091", jobs, List.class, headers);
+        restTemplate.postForObject("http://localhost:8090/jobDuration", jobs, List.class, headers);
+        restTemplate.postForObject("http://localhost:8091/jobDuration", jobs, List.class, headers);
     }
 
     public void deleteCoalitionsFromRepository(){
