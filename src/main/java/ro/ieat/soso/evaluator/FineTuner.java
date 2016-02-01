@@ -220,10 +220,9 @@ public class FineTuner {
                 LOG.info("Machine usage" + machineUsage.getCpu() + " " + machineUsage.getMemory() +
                         "\nMachine capacity " + m.getCpu() + " " + m.getMemory());
 
-                if(usageList.get(i).getAssignedMachineId() != 0) {
-                    machineUsage.substractTaskUsage(usageList.get(i));
-                    schedulingErrors++;
-                }
+                machineUsage.substractTaskUsage(usageList.get(i));
+                schedulingErrors++;
+
                 i--;
                 overcommit = true;
             }
@@ -232,16 +231,21 @@ public class FineTuner {
                 logOvercommit(LOG, i);
             }
 
+            overcommit = false;
             i = usageListRandom.size() - 1;
             while((machineUsageRandom.getCpu() > THRESHOLD * m.getCpu() ||
                     machineUsageRandom.getMemory() > THRESHOLD * m.getMemory()) && i >= 0) {
-                LOG.info("Machine usage" + machineUsageRandom.getCpu() + " " + machineUsageRandom.getMemory() +
+                LOG.info("Machine usage random" + machineUsageRandom.getCpu() + " " + machineUsageRandom.getMemory() +
                         "\nMachine capacity " + m.getCpu() + " " + m.getMemory());
 
                 machineUsage.substractTaskUsage(usageListRandom.get(i));
                 schedulingErrorsRandom++;
 
                 i--;
+                overcommit = true;
+            }
+            if(overcommit) {
+                logOvercommit(LOG, i);
             }
         }
 

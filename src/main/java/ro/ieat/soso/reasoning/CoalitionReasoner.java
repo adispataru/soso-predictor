@@ -63,7 +63,7 @@ public class CoalitionReasoner {
             i++;
         }
 
-        LOG.info("Coalitions created: " + coalitionMap.size());
+        LOG.info("Coalitions created: " + coalitionRepository.count());
         for (Coalition c : coalitionMap.values()) {
             sendCoalition(c);
         }
