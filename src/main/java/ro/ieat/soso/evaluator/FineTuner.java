@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
+import ro.ieat.soso.App;
 import ro.ieat.soso.core.coalitions.Coalition;
 import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.config.Configuration;
@@ -79,6 +80,16 @@ public class FineTuner {
 
     }
 
+    public boolean isJobScheduled(Long time, Long jobId, List<ScheduledJob> list){
+        if (time < App.jobSendingTime)
+            return true;
+        for(ScheduledJob scheduledJob : list){
+            if(scheduledJob.getJobId() == jobId)
+                return true;
+        }
+        return false;
+    }
+
     private static long getJobScheduleTime(List<Job> list, long jobId){
         for(Job j : list)
             if (j.getJobId() == jobId)
@@ -88,7 +99,7 @@ public class FineTuner {
 
 
     @RequestMapping(method = RequestMethod.PUT, path = "/finetuner/{time}")
-    public void fineTuneAndWriteResults(@PathVariable Long time){
+    public void fineTuneAndWriteResults(@PathVariable  Long time){
 
         long lowTime = (time - Configuration.STEP) * Configuration.TIME_DIVISOR;
         time *= Configuration.TIME_DIVISOR;
@@ -99,10 +110,12 @@ public class FineTuner {
 
         Map<Long, TaskUsage> loadMap = new TreeMap<>();
         Map<Long, TaskUsage> loadMapRandom = new TreeMap<>();
+
         Map<Long, UsageError> usageErrorMap = new TreeMap<>();
+        Map<Long, UsageError> usageErrorMapRandom = new TreeMap<>();
+
         Long schedulingErrors = 0L;
         Long schedulingErrorsRandom = 0L;
-        List<Long> jobIds = new ArrayList<>();
         List<Job> jobList = jobRepository.findBySubmitTimeBetween(lowTime, time);
 //        List<JobDuration> jobDurations = jobDurationRepository.findBySubmitTimeBetween(lowTime, time);
 //        List<Long> runtimeErrors = new ArrayList<>();
@@ -137,14 +150,18 @@ public class FineTuner {
 
         for(Machine m : machineRepository.findAll()){
 
+            final Long finalTime = time;
             List<TaskUsage> usageList = allTaskUsageList.stream().filter(t ->
-                    isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobs) ||
+                    (isJobScheduled(finalTime, t.getJobId(), scheduledJobs) &&
+                            isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobs)) ||
                             t.getMachineId().equals(m.getId()))
                     .collect(Collectors.toList());
 
+
             List<TaskUsage> usageListRandom = allTaskUsageList.stream().filter(t ->
-                    isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobsRandom) ||
-                    t.getMachineId().equals(m.getId()))
+                    (isJobScheduled(finalTime, t.getJobId(), scheduledJobsRandom) &&
+                            isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobsRandom)) ||
+                            t.getMachineId().equals(m.getId()))
                     .collect(Collectors.toList());
 
             List<TaskUsage> usageWithoutScheduled = usageList.stream().filter(t -> !jobListContainsId(jobList, t.getId()))
@@ -153,28 +170,39 @@ public class FineTuner {
 
 
 
-            TaskUsage machineLoad = TaskUsageCombiner.combineTaskUsageList(usageList, lowTime, jobList, scheduledJobs, "rb-tree");
-            TaskUsage machineLoadWithoutCurrent = TaskUsageCombiner.combineTaskUsageList(usageWithoutScheduled, lowTime, jobList, scheduledJobs, "rb-tree");
+            TaskUsage machineLoad = TaskUsageCombiner.
+                    combineTaskUsageList(usageList, lowTime, jobList, scheduledJobs, "rb-tree");
+            TaskUsage machineLoadWithoutCurrent = TaskUsageCombiner.
+                    combineTaskUsageList(usageWithoutScheduled, lowTime, jobList, scheduledJobs, "rb-tree");
 
-            TaskUsage machineLoadRandom = TaskUsageCombiner.combineTaskUsageList(usageListRandom, lowTime, jobList, scheduledJobs, "random");
-            TaskUsage machineLoadWithoutCurrentRandom = TaskUsageCombiner.combineTaskUsageList(usageWithoutScheduled, lowTime, jobList, scheduledJobs, "random");
+            TaskUsage machineLoadRandom = TaskUsageCombiner.
+                    combineTaskUsageList(usageListRandom, lowTime, jobList, scheduledJobs, "random");
+            TaskUsage machineLoadWithoutCurrentRandom = TaskUsageCombiner.
+                    combineTaskUsageList(usageWithoutScheduled, lowTime, jobList, scheduledJobs, "random");
 
             TaskUsage machineUsage = new TaskUsage();
             machineUsage.addTaskUsage(machineLoad);
+
             TaskUsage machineUsageRandom = new TaskUsage();
             machineUsageRandom.addTaskUsage(machineLoadRandom);
+
             machineLoad.divideCPU(m.getCpu());
             machineLoadRandom.divideCPU(m.getCpu());
+
             machineLoad.divideMemory(m.getMemory());
             machineLoadRandom.divideMemory(m.getMemory());
+
             loadMap.put(m.getId(), machineLoad);
             loadMapRandom.put(m.getId(), machineLoadRandom);
+
+
             usageErrorMap.put(m.getId(), new UsageError(machineLoadWithoutCurrent, m.getUsagePrediction()));
-//            LOG.info(machineLoad.getCpu() + " <- cpu");
+            usageErrorMapRandom.put(m.getId(), new UsageError(machineLoadWithoutCurrentRandom, m.getUsagePrediction()));
 
             int i = usageList.size() - 1;
             //actually makes sense to subtract usage of task which produced error.
 
+            boolean overcommit = false;
             while((machineUsage.getCpu() > THRESHOLD * m.getCpu() ||
                     machineUsage.getMemory() > THRESHOLD * m.getMemory()) && i >= 0) {
                 LOG.info("Machine usage" + machineUsage.getCpu() + " " + machineUsage.getMemory() +
@@ -185,6 +213,11 @@ public class FineTuner {
                     schedulingErrors++;
                 }
                 i--;
+                overcommit = true;
+            }
+
+            if(overcommit) {
+                logOvercommit(LOG, i);
             }
 
             i = usageListRandom.size() - 1;
@@ -239,6 +272,14 @@ public class FineTuner {
 
 
 
+    }
+
+    private void logOvercommit(Logger LOG, int i) {
+        if (i != 0) {
+            LOG.info("Substracted machine usage");
+        } else {
+            LOG.info("Machine was overcommited!");
+        }
     }
 
     private void writeLateness(List<Long> latenessList, List<Long> latenessListRandom, Long time) {
