@@ -116,7 +116,7 @@ public class FineTuner {
 
         Long schedulingErrors = 0L;
         Long schedulingErrorsRandom = 0L;
-        List<Job> jobList = jobRepository.findBySubmitTimeBetween(lowTime, time);
+        List<Job> jobList = jobRepository.findBySubmitTimeBetween(lowTime-1, time+1);
 //        List<JobDuration> jobDurations = jobDurationRepository.findBySubmitTimeBetween(lowTime, time);
 //        List<Long> runtimeErrors = new ArrayList<>();
 //        for(Job j : jobList){
@@ -146,6 +146,8 @@ public class FineTuner {
         List<Long> latenessListRandom = new ArrayList<>();
         for(ScheduledJob j : scheduledJobs){
             long real = getJobScheduleTime(jobList, j.getJobId());
+            if(real == 0)
+                continue;
             if(j.getScheduleType().equals("rb-tree")) {
                 latenessList.add(j.getTimeToStart() - real);
                 scheduledTasks += j.getTaskMachineMapping().size();
