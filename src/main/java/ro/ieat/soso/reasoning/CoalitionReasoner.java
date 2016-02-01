@@ -103,10 +103,6 @@ public class CoalitionReasoner {
         coalition.setCurrentETA(0L);
         coalition.setConfidenceLevel(.0);
 
-        if (MachineEventsMapper.MACHINES.containsKey(machineProperties.getId())) {
-            machineProperties.setCpu(MachineEventsMapper.MACHINES.get(machineProperties.getId()).getKey());
-            machineProperties.setMemory(MachineEventsMapper.MACHINES.get(machineProperties.getId()).getValue());
-        }
 
 //        LOG.info("min size: " + minSize);
 //        LOG.info("machine usage size: " + machineProperties.getTaskUsageList().size());

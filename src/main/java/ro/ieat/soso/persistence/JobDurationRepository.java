@@ -12,7 +12,6 @@ import java.util.List;
 public interface JobDurationRepository extends MongoRepository<JobDuration, Long>{
 
     List<JobDuration> findByLogicJobName(String logicJobName);
-    List<JobDuration> findBySubmitTimeBetween(Long min, Long max);
     List<JobDuration> findByLogicJobNameAndSubmitTimeGreaterThan(String logicJobName, Long max);
 
 }

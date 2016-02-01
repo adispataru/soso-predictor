@@ -8,10 +8,13 @@ import ro.ieat.soso.core.config.Configuration;
 import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.jobs.TaskUsage;
 import ro.ieat.soso.core.prediction.Duration;
+import ro.ieat.soso.persistence.JobDurationRepository;
 import ro.ieat.soso.persistence.JobRepository;
 import ro.ieat.soso.persistence.MachineRepository;
 import ro.ieat.soso.persistence.TaskUsageMappingRepository;
+import ro.ieat.soso.predictor.prediction.JobDuration;
 import ro.ieat.soso.predictor.prediction.PredictionFactory;
+import ro.ieat.soso.reasoning.controllers.CoalitionClient;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -34,6 +37,8 @@ public  class Predictor {
     JobRepository jobRepository;
     @Autowired
     MachineRepository machineRepository;
+    @Autowired
+    JobDurationRepository jobDurationRepository;
     private static Logger LOG = Logger.getLogger("Predictor");
 
     @RequestMapping(method = RequestMethod.PUT, path = "/predict/allUsage/{historyStart}/{historyEnd}", consumes = "application/json")
@@ -184,12 +189,19 @@ public  class Predictor {
         return machineUsage;
     }
 
-    @RequestMapping(method = RequestMethod.GET, path = "/predict/job/{logicJobName}/{historyEnd}")
-    public Duration predictJobRuntime(@PathVariable final String logicJobName, Long historyEnd) throws IOException {
+    @RequestMapping(method = RequestMethod.PUT, path = "/predict/job/{logicJobName}/{historyEnd}")
+    public void predictJobRuntime(@PathVariable final String logicJobName, Long historyEnd) throws IOException {
 
 
         //This should be reasoned as a similarity strategy
         List<Job> jobs = jobRepository.findByLogicJobNameAndSubmitTimeLessThan(logicJobName, historyEnd);
+
+        JobDuration duration = computeJobDuration(jobs);
+        duration.setLogicJobName(logicJobName);
+        jobDurationRepository.save(duration);
+    }
+
+    public JobDuration computeJobDuration(List<Job> jobs){
         List<Duration> durationList = new ArrayList<Duration>();
         for(Job j : jobs){
             if(j.getFinishTime() == 0 || j.getScheduleTime() == 0 || !"finish".equals(j.getStatus()))
@@ -198,9 +210,36 @@ public  class Predictor {
             if(duration.longValue() > 0)
                 durationList.add(duration);
         }
-
-        return (Duration) PredictionFactory.getPredictionMethod("job").predict(durationList);
+        Duration d = (Duration) PredictionFactory.getPredictionMethod("job").predict(durationList);
+        JobDuration duration = new JobDuration();
+        duration.setDuration(d);
+        return duration;
     }
+
+    @RequestMapping(method = RequestMethod.PUT, path = "/predict/job/{historyStart}/{historyEnd}")
+    public void predictAllJobsRuntime(@PathVariable final Long historyStart,@PathVariable final Long historyEnd) throws IOException {
+        List<Job> all = jobRepository.findBySubmitTimeBetween(historyStart, historyEnd);
+        List<String> logicJobNames = new ArrayList<>();
+        all.stream().forEach((job) -> {
+            if(!logicJobNames.contains(job.getLogicJobName()))
+                logicJobNames.add(job.getLogicJobName());
+        });
+        List<JobDuration> durations = new ArrayList<>();
+
+        for(String logicJobName : logicJobNames){
+            List<Job> jobs = all.stream().filter(j ->
+                    j.getSubmitTime() < historyEnd && j.getLogicJobName().equals(logicJobName))
+                    .collect(Collectors.toList());
+            JobDuration duration = computeJobDuration(jobs);
+            duration.setLogicJobName(logicJobName);
+            durations.add(duration);
+        }
+
+        jobDurationRepository.save(durations);
+        CoalitionClient client = new CoalitionClient();
+        client.sendJobRuntimePrediction(durations);
+    }
+
 
     private static class TaskPair{
         public long jobId;

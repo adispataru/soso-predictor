@@ -171,6 +171,11 @@ public class JobRequester {
         LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
 
         time = System.currentTimeMillis();
+        LOG.info("Predicting job runtime");
+        template.put("http://localhost:8088/predict/job" + initStart + "/" + initEnd, 1);
+        LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
+
+        time = System.currentTimeMillis();
         LOG.info("Initializing coalitions...");
         Integer csize = template.getForObject("http://localhost:8088/coalitions/init/" + initEnd, Integer.class);
         LOG.info("Initialized " + csize + " coalitions");
@@ -195,6 +200,7 @@ public class JobRequester {
                 LOG.info("Updating coalitions");
                 template.put("http://localhost:8088/coalitions/update/" + initEnd, 1);
                 LOG.info("Done.");
+
             }
 
             LOG.info("Searching jobs between " + initEnd + " and " + time);

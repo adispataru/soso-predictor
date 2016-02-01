@@ -8,9 +8,7 @@ import ro.ieat.soso.core.prediction.Duration;
  */
 public class JobDuration {
     @Id
-    private Long id;
     private String logicJobName;
-    private Long submitTime;
     private Duration duration;
 
 
@@ -30,11 +28,4 @@ public class JobDuration {
         this.duration = duration;
     }
 
-    public Long getSubmitTime() {
-        return submitTime;
-    }
-
-    public void setSubmitTime(Long submitTime) {
-        this.submitTime = submitTime;
-    }
 }

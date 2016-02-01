@@ -104,18 +104,20 @@ public class FineTuner {
         Long schedulingErrorsRandom = 0L;
         List<Long> jobIds = new ArrayList<>();
         List<Job> jobList = jobRepository.findBySubmitTimeBetween(lowTime, time);
-        List<JobDuration> jobDurations = jobDurationRepository.findBySubmitTimeBetween(lowTime, time);
-        List<Long> runtimeErrors = new ArrayList<>();
+//        List<JobDuration> jobDurations = jobDurationRepository.findBySubmitTimeBetween(lowTime, time);
+//        List<Long> runtimeErrors = new ArrayList<>();
+//        for(Job j : jobList){
+//            Long d = j.getFinishTime() - j.getScheduleTime();
+//            scheduledTasks += j.getTaskHistory().size();
+//            for(JobDuration jd : jobDurations){
+//                if(jd.getLogicJobName().equals(j.getLogicJobName())){
+//                    runtimeErrors.add(Math.abs(jd.getDuration().longValue() - d));
+//                }
+//            }
+//        }
+
         long scheduledTasks = 0;
-        for(Job j : jobList){
-            Long d = j.getFinishTime() - j.getScheduleTime();
-            scheduledTasks += j.getTaskHistory().size();
-            for(JobDuration jd : jobDurations){
-                if(jd.getLogicJobName().equals(j.getLogicJobName())){
-                    runtimeErrors.add(Math.abs(jd.getDuration().longValue() - d));
-                }
-            }
-        }
+
 
         List<ScheduledJob> scheduledJobs = scheduledRepository.findByScheduleType("rb-tree");
         List<ScheduledJob> scheduledJobsRandom = scheduledRepository.findByScheduleType("random");
