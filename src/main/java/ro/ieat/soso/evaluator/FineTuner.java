@@ -457,7 +457,7 @@ public class FineTuner {
             fileWriter = new FileWriter(f, true);
             if(writeHeader)
                 fileWriter.write("%time #sched_errs #scheduled_now #total\n");
-            fileWriter.write(String.format("%d %d %d\n", time, schedulingErrors, scheduledTasks));
+            fileWriter.write(String.format("%d %d %d %d\n", time, schedulingErrors, scheduledTasks, totalTasks));
         } catch (IOException e) {
             e.printStackTrace();
         }finally {
