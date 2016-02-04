@@ -134,7 +134,8 @@ public class FineTuner {
         long totalTasks = 0;
 
         for(Job j : jobList){
-            totalTasks += j.getTaskHistory().size();
+            if(j.getStatus().equals("finish"))
+                totalTasks += j.getTaskHistory().size();
         }
 
 
@@ -142,20 +143,26 @@ public class FineTuner {
         List<ScheduledJob> scheduledJobsRandom = scheduledRepository.findByScheduleType("random");
         LOG.severe("Scheduled tasks:\nrandom: " + scheduledJobsRandom.size() + "\nrb-tree: " + scheduledJobs.size());
 
+        scheduledRepository.delete(scheduledJobs);
+        scheduledRepository.delete(scheduledJobsRandom);
         List<Long> latenessList = new ArrayList<>();
         List<Long> latenessListRandom = new ArrayList<>();
         for(ScheduledJob j : scheduledJobs){
             long real = getJobScheduleTime(jobList, j.getJobId());
             if(real == 0)
                 continue;
-            if(j.getScheduleType().equals("rb-tree")) {
-                latenessList.add(j.getTimeToStart() - real);
-                scheduledTasks += j.getTaskMachineMapping().size();
-            }
-            else {
-                latenessListRandom.add(j.getTimeToStart() - real);
-                scheduledTasksRandom += j.getTaskMachineMapping().size();
-            }
+
+            latenessList.add(j.getTimeToStart() - real);
+            scheduledTasks += j.getTaskMachineMapping().size();
+
+        }
+
+        for(ScheduledJob j : scheduledJobsRandom){
+            long real = getJobScheduleTime(jobList, j.getJobId());
+            if(real == 0)
+                continue;
+            latenessListRandom.add(j.getTimeToStart() - real);
+            scheduledTasksRandom += j.getTaskMachineMapping().size();
         }
 
 
