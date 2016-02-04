@@ -58,6 +58,8 @@ public class JobRequester {
 
     @Autowired
     ScheduledRepository scheduledRepository;
+    String jobRequestTargetUrl1 = "http://localhost:8090/job";
+    String jobRequestTargetUrl2 = "http://localhost:8091/job";
 
 
 
@@ -214,8 +216,6 @@ public class JobRequester {
             List<Job> jobs = jobRepository.findBySubmitTimeBetween(
                     initEnd * Configuration.TIME_DIVISOR, time * Configuration.TIME_DIVISOR);
 
-            String jobRequestTargetUrl1 = "http://localhost:8090/job";
-            String jobRequestTargetUrl2 = "http://localhost:8091/job";
 
             LOG.info(String.format("Found %d jobs", jobs.size()));
             for (Job j : jobs) {
@@ -257,11 +257,24 @@ public class JobRequester {
             initEnd = time;
             time += Configuration.STEP;
             template = new RestTemplate();
+            if (time > endTime){
+                Job endJob = new Job();
+                endJob.setJobId(-1);
+                LOG.info("Sending end job");
+                coalitionClient.sendJobRequest(endJob, jobRequestTargetUrl1);
+                coalitionClient.sendJobRequest(endJob, jobRequestTargetUrl2);
+            }
             template.put("http://localhost:8088/finetuner/" + initEnd, 1);
             updateCoalition = true;
         }
 
+
+
+
+
+
         LOG.exiting("experiment", "JobRequester");
+
         LOG.info("Success!");
 
 
