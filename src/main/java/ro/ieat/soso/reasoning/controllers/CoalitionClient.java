@@ -32,7 +32,8 @@ public class CoalitionClient{
     }
 
     public ScheduledJob sendJobRequest(Job j, String targetUrl){
-        LOG.info("Job to send:\n" + j.toString());
+        if(j.getJobId() != -1)
+            LOG.info("Job to send:\n" + j.toString());
         restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
