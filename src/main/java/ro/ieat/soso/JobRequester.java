@@ -218,11 +218,15 @@ public class JobRequester {
 
 
             LOG.info(String.format("Found %d jobs", jobs.size()));
+            long total = 0;
+            long sent = 0;
             for (Job j : jobs) {
 
                 //LOG.info("For job " + j.getJobId() + " status is " + j.getStatus() + " at time " + j.getSubmitTime());
+                total += j.getTaskHistory().size();
 
                 if (j.getStatus().equals("finish")) {
+                    sent += j.getTaskHistory().size();
 
                     //Send job request to main matcher
                     ScheduledJob scheduledJob = coalitionClient.sendJobRequest(new Job(j, false), jobRequestTargetUrl1);
@@ -252,7 +256,7 @@ public class JobRequester {
                     LOG.info("Not sending " + j.getJobId() + " because status is " + j.getStatus() + " at time " + j.getSubmitTime());
                 }
             }
-            writeJobSchedulingErrors(notScheduledJobs, notScheduledJobs2, time);
+            writeJobSchedulingErrors(notScheduledJobs, notScheduledJobs2, sent, total, time);
 
             initEnd = time;
             time += Configuration.STEP;
@@ -280,10 +284,10 @@ public class JobRequester {
 
     }
 
-    public void writeJobSchedulingErrors(long notScheduledJobs, long notScheduledJobs2, long time){
+    public void writeJobSchedulingErrors(long notScheduledJobs, long notScheduledJobs2, long sent, long  total, long time){
         try {
             FileWriter fileWriter = new FileWriter("./output/results/schedule/not_planned_errors", true);
-            fileWriter.write(String.format("%d %d %d\n", time, notScheduledJobs, notScheduledJobs2));
+            fileWriter.write(String.format("%d %d %d %d %d\n", time, notScheduledJobs, notScheduledJobs2, sent, total));
             fileWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
