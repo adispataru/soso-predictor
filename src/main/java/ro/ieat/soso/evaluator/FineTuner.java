@@ -134,7 +134,7 @@ public class FineTuner {
         long totalTasks = 0;
 
         for(Job j : jobList){
-            if(j.getStatus().equals("finish"))
+            if(j.getStatus() != null)
                 totalTasks += j.getTaskHistory().size();
         }
 
