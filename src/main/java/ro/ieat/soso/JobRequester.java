@@ -225,7 +225,7 @@ public class JobRequester {
                 //LOG.info("For job " + j.getJobId() + " status is " + j.getStatus() + " at time " + j.getSubmitTime());
                 total += j.getTaskHistory().size();
 
-                if (j.getStatus().equals("finish")) {
+                if (j.getStatus().equals("finish") || j.getStatus().equals(" ")) {
                     sent += j.getTaskHistory().size();
 
                     //Send job request to main matcher
