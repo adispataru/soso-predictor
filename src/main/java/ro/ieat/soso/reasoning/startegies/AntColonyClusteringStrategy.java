@@ -30,6 +30,7 @@ public class AntColonyClusteringStrategy {
         List<Ant> ants = new ArrayList<>();
         for(Machine m : machines){
             Ant a = new Ant(m);
+            ants.add(a);
         }
 
         LOG.info("Learning threshold");
