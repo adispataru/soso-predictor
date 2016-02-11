@@ -133,7 +133,7 @@ public class JobRequester {
                         LOG.severe("Not saving job " + j.getJobId() + " because it has " + j.getTaskHistory().size() + " tasks.");
                         //iterator.remove();
                     }
-                    if(j.getStatus().equals("finish"))
+                    if(j.getStatus().equals("finish") || j.getStatus().equals("kill") || j.getStatus().equals("fail"))
                         iterator.remove();
                 }
             }
