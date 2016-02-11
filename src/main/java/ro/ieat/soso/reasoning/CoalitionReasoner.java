@@ -135,7 +135,7 @@ public class CoalitionReasoner {
 
     public List<Coalition> antColonyClustering(List<Machine> machines, long time){
         Map<Long, Long> machineMaxTaskMap = new TreeMap<>();
-        List<Job> jobList = jobRepository.findBySubmitTimeBetween(0L, time+1);
+        List<Job> jobList = jobRepository.findBySubmitTimeBetween(0L, time * Configuration.TIME_DIVISOR +1);
         LOG.info("JobList size: " + jobList.size());
         for(Job job : jobList){
             int size = job.getTaskHistory().size();
