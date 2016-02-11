@@ -36,7 +36,7 @@ public class AntColonyClusteringStrategy {
         learnThreshold(ants);
         LOG.info("Done.");
 
-        LOG.info("Random meeting ants");
+        LOG.info("Random meeting ants: " + ants.size());
         Map<Long, List<Ant>> clusters = randomMeetAnts(ants);
         LOG.info("Done.");
         Map<Long, Double> nClusters = new TreeMap<>();

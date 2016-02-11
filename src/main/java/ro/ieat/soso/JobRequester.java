@@ -172,7 +172,7 @@ public class JobRequester {
         LOG.info("Predicting machine usage...");
         String predictionPath = "http://localhost:8088/predict/allUsage/" + initStart + "/" + initEnd;
         //predict taskUsage for all machines
-        template.put(predictionPath, 1);
+//        template.put(predictionPath, 1);
 
         LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
 
