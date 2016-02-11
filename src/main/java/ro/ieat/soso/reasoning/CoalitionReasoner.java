@@ -9,18 +9,18 @@ import org.springframework.web.bind.annotation.RestController;
 import ro.ieat.soso.core.coalitions.Coalition;
 import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.config.Configuration;
+import ro.ieat.soso.core.jobs.Job;
+import ro.ieat.soso.core.jobs.TaskHistory;
 import ro.ieat.soso.core.mappers.MachineEventsMapper;
 import ro.ieat.soso.persistence.CoalitionRepository;
 import ro.ieat.soso.persistence.JobRepository;
 import ro.ieat.soso.persistence.MachineRepository;
 import ro.ieat.soso.persistence.TaskUsageMappingRepository;
 import ro.ieat.soso.reasoning.controllers.CoalitionClient;
+import ro.ieat.soso.reasoning.startegies.AntColonyClusteringStrategy;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Random;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -55,19 +55,13 @@ public class CoalitionReasoner {
         int i = 1;
         long size = machineRepository.count();
 
-        for (Machine m : machineRepository.findAll()) {
-            reasonMachineRandomly(m, coalitionMap, time);
-//            LOG.info("Machine number: " + i);
-            if (i % (size / 10) == 0)
-                LOG.info(String.format("%.2f%%", i * 1.0 / size));
-            i++;
-        }
+        List<Coalition> coalitions = antColonyClustering(machineRepository.findAll(), time);
 
         LOG.info("Coalitions created: " + coalitionRepository.count());
-        for (Coalition c : coalitionMap.values()) {
+        for (Coalition c : coalitions) {
             sendCoalition(c);
         }
-        return coalitionMap.size();
+        return coalitions.size();
     }
 
 
@@ -137,6 +131,28 @@ public class CoalitionReasoner {
                 }
             }
         }
+    }
+
+    public List<Coalition> antColonyClustering(List<Machine> machines, long time){
+        Map<Long, Long> machineMaxTaskMap = new TreeMap<>();
+        List<Job> jobList = jobRepository.findBySubmitTimeBetween(0L, time+1);
+        for(Job job : jobList){
+            int size = job.getTaskHistory().size();
+            for(TaskHistory th : job.getTaskHistory().values()){
+                if(machineMaxTaskMap.containsKey(th.getMachineId())) {
+                    if (machineMaxTaskMap.get(th.getMachineId()) < size)
+                        machineMaxTaskMap.put(th.getMachineId(), (long) size);
+                }else{
+                    machineMaxTaskMap.put(th.getMachineId(), (long) size);
+                }
+
+            }
+        }
+        AntColonyClusteringStrategy acs = new AntColonyClusteringStrategy(machineMaxTaskMap);
+        List<Coalition> result = acs.clusterize(machines);
+        return result;
+
+
     }
 
     @RequestMapping(method = RequestMethod.PUT, path = "/coalitions/update/{time}")

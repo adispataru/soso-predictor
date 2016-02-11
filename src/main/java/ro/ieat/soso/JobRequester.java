@@ -200,7 +200,7 @@ public class JobRequester {
         boolean updateCoalition = false;
         while(time <= endTime) {
             long notScheduledJobs = 0;
-            long notScheduledJobs2 = 0;
+            long notScheduledJobsRandom = 0;
             //TODO This will function again during reorganization
 //            if(updateCoalition){
 //                LOG.info("Predicting machine usage...");
@@ -248,7 +248,7 @@ public class JobRequester {
                         scheduledJob2.setScheduleType("random");
                         scheduledRepository.save(scheduledJob2);
                     } else {
-                        notScheduledJobs2 += j.getTaskHistory().size();
+                        notScheduledJobsRandom += j.getTaskHistory().size();
                         LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
                     }
 
@@ -256,7 +256,7 @@ public class JobRequester {
                     LOG.info("Not sending " + j.getJobId() + " because status is " + j.getStatus() + " at time " + j.getSubmitTime());
                 }
             }
-            writeJobSchedulingErrors(notScheduledJobs, notScheduledJobs2, sent, total, time);
+            writeJobSchedulingErrors(notScheduledJobs, notScheduledJobsRandom, sent, total, time);
 
             initEnd = time;
             time += Configuration.STEP;
@@ -284,10 +284,10 @@ public class JobRequester {
 
     }
 
-    public void writeJobSchedulingErrors(long notScheduledJobs, long notScheduledJobs2, long sent, long  total, long time){
+    public void writeJobSchedulingErrors(long notScheduledJobs, long notScheduledJobsRandom, long sent, long  total, long time){
         try {
             FileWriter fileWriter = new FileWriter("./output/results/schedule/not_planned_errors", true);
-            fileWriter.write(String.format("%d %d %d %d %d\n", time, notScheduledJobs, notScheduledJobs2, sent, total));
+            fileWriter.write(String.format("%d %d %d %d %d\n", time, notScheduledJobs, notScheduledJobsRandom, sent, total));
             fileWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
