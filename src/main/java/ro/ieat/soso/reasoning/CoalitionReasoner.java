@@ -140,6 +140,7 @@ public class CoalitionReasoner {
         for(Job job : jobList){
             int size = job.getTaskHistory().size();
             for(TaskHistory th : job.getTaskHistory().values()){
+                LOG.severe("Task machine id: " + th.getMachineId());
                 if(machineMaxTaskMap.containsKey(th.getMachineId())) {
                     if (machineMaxTaskMap.get(th.getMachineId()) < size)
                         machineMaxTaskMap.put(th.getMachineId(), (long) size);
