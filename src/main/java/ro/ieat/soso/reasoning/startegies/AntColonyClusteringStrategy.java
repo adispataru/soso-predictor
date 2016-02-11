@@ -232,6 +232,9 @@ public class AntColonyClusteringStrategy {
 
     private Double computeSimilarity(Ant a, Ant ant) {
         Double similarity = .0;
+        LOG.info(a.data.getId() + " first id.");
+        LOG.info(ant.data.getId() + " second id.");
+        LOG.info(machineMaxTaskMapping.size() + " size.");
         Long firstMax = machineMaxTaskMapping.get(a.data.getId());
         Long secondMax = machineMaxTaskMapping.get(ant.data.getId());
         similarity = 1 - gamma * Math.abs(firstMax - secondMax)/ Math.max(firstMax, secondMax);
