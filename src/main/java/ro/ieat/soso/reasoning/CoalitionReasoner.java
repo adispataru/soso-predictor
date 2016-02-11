@@ -148,6 +148,7 @@ public class CoalitionReasoner {
 
             }
         }
+        LOG.info("TaskMaxMapping size: " + machineMaxTaskMap.size());
         AntColonyClusteringStrategy acs = new AntColonyClusteringStrategy(machineMaxTaskMap);
         List<Coalition> result = acs.clusterize(machines);
         return result;
