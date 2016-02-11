@@ -35,7 +35,7 @@ public class App {
 
         SpringApplication.run(App.class, args);
         RestTemplate restTemplate = new RestTemplate();
-        //restTemplate.getForObject("http://localhost:8088/app/init/1200/6600", String.class);
+        restTemplate.getForObject("http://localhost:8088/app/init/600/" + Long.MAX_VALUE / Configuration.TIME_DIVISOR, String.class);
         restTemplate.put("http://localhost:8088/app/start/" + initTime + "/9900/4" , null);
 
 
