@@ -102,15 +102,14 @@ public class AntColonyClusteringStrategy {
         int total = 5000;
         Map<Long, List<Ant>> clusters = new TreeMap<>();
         for (int i = 0; i < total; i++){
-            int first = r.nextInt(ants.size());
-            int second = r.nextInt(ants.size());
+            Integer first = r.nextInt(ants.size());
+            Integer second = r.nextInt(ants.size());
             Ant firstAnt = ants.get(first);
             Ant secondAnt = ants.get(second);
             firstAnt.meetingCounter ++;
             secondAnt.meetingCounter ++;
             Double similarity = similarityMap.get(first).get(second);
             if(similarity == null){
-                System.out.print("null similarity");
                 similarity = .0;
             }
             if(similarity > firstAnt.threshold && similarity > secondAnt.threshold){
@@ -124,7 +123,7 @@ public class AntColonyClusteringStrategy {
     }
 
     private void applyRejectRules(Ant firstAnt, Ant secondAnt, Map<Long, List<Ant>> clusters) {
-        if(firstAnt.label !=0 && secondAnt.label.equals(firstAnt.label)){
+        if(!firstAnt.label.equals(0L) && secondAnt.label.equals(firstAnt.label)){
             if(firstAnt.mPlus < secondAnt.mPlus){
                 firstAnt.mPlus = .0;
                 firstAnt.m = .0;
@@ -145,11 +144,11 @@ public class AntColonyClusteringStrategy {
     }
 
     private void applyAcceptRules(Ant firstAnt, Ant secondAnt, Map<Long, List<Ant>> clusters) {
-        if(firstAnt.label == 0 && secondAnt.label == 0){
+        if(firstAnt.label.equals(0L) && secondAnt.label.equals(0L)){
             Long firstMaxHere = machineMaxTaskMapping.get(firstAnt.data.getId());
             Long secondMaxHere = machineMaxTaskMapping.get(secondAnt.data.getId());
-            Long label = Math.max(firstMaxHere != null ? firstMaxHere : 0,
-                    secondMaxHere != null ? secondMaxHere : 0);
+            Long label = Math.max(firstMaxHere != null ? firstMaxHere : 0L,
+                    secondMaxHere != null ? secondMaxHere : 0L);
             firstAnt.label = label;
             secondAnt.label = label;
             if(!clusters.containsKey(label)) {
@@ -158,17 +157,17 @@ public class AntColonyClusteringStrategy {
             clusters.get(label).add(firstAnt);
             clusters.get(label).add(firstAnt);
         }
-        if(firstAnt.label == 0 && secondAnt.label != 0){
+        if(firstAnt.label.equals(0L) && !secondAnt.label.equals(0L)){
             clusters.get(firstAnt.label).remove(firstAnt);
             firstAnt.label = secondAnt.label;
             clusters.get(secondAnt.label).add(firstAnt);
         }
-        if(firstAnt.label != 0 && secondAnt.label == 0){
+        if(!firstAnt.label.equals(0L) && secondAnt.label.equals(0L)){
             clusters.get(secondAnt.label).remove(secondAnt);
             secondAnt.label = firstAnt.label;
             clusters.get(firstAnt.label).add(secondAnt);
         }
-        if(firstAnt.label != 0 && secondAnt.label != 0){
+        if(!firstAnt.label.equals(0L) && !secondAnt.label.equals(0L)){
             if(firstAnt.label.equals(secondAnt.label)){
                 firstAnt.m = increase(firstAnt.m);
                 secondAnt.m = increase(secondAnt.m);
