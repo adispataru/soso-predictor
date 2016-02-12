@@ -94,6 +94,7 @@ public class AntColonyClusteringStrategy {
                 }
                 c.setMachines(machineList);
                 result.add(c);
+                processed += label > 0 ? label : 1;
             }
         }
         LOG.info("Created " + result.size() + " coalitions!");
