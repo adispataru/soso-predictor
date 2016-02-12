@@ -158,12 +158,10 @@ public class AntColonyClusteringStrategy {
             clusters.get(label).add(firstAnt);
         }
         if(firstAnt.label.equals(0L) && !secondAnt.label.equals(0L)){
-            clusters.get(firstAnt.label).remove(firstAnt);
             firstAnt.label = secondAnt.label;
             clusters.get(secondAnt.label).add(firstAnt);
         }
         if(!firstAnt.label.equals(0L) && secondAnt.label.equals(0L)){
-            clusters.get(secondAnt.label).remove(secondAnt);
             secondAnt.label = firstAnt.label;
             clusters.get(firstAnt.label).add(secondAnt);
         }
