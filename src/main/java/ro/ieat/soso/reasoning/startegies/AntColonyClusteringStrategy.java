@@ -73,6 +73,8 @@ public class AntColonyClusteringStrategy {
                 }
             }
             Long label = ants.get(maxSimAnt).label;
+            if(!clusters.containsKey(label))
+                clusters.put(label, new ArrayList<>());
             clusters.get(label).add(ant);
             ant.label = label;
         }
