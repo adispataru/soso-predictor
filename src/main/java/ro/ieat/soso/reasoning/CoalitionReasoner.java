@@ -57,24 +57,26 @@ public class CoalitionReasoner {
 
         List<Coalition> coalitions = antColonyClustering(machineRepository.findAll(), time);
 
-        LOG.info("Coalitions created: " + coalitionRepository.count());
         for (Coalition c : coalitions) {
-            sendCoalition(c);
+            sendCoalition(c, time);
         }
+        coalitionRepository.save(coalitions);
+        LOG.info("Coalitions created: " + coalitionRepository.count());
         return coalitions.size();
     }
 
 
-    public void sendCoalition(Coalition c) {
+    public void sendCoalition(Coalition c, long time) {
 
-//        if(c.getCurrentETA().getMax() == 0L) {
-//            for (Long mID : c.getMachines()) {
-//                Machine m = machineRepository.findOne(mID);
-//                if (m.getETA().getMax() > c.getCurrentETA().getMax()) {
+        if(c.getCurrentETA() == 0L) {
+//            for (Machine m : c.getMachines()) {
+////                Machine m = machineRepository.findOne(mID);
+//                if (m.getETA() > c.getCurrentETA()) {
 //                    c.setCurrentETA(m.getETA());
 //                }
 //            }
-//        }
+            c.setCurrentETA(time);
+        }
 
         if (c.getId() == 0)
             c.setId(c_id++);
@@ -120,7 +122,7 @@ public class CoalitionReasoner {
                 Coalition coalition2 = coalitionMap.get(minSize);
                 if (coalition2.getMachines().size() == minSize) {
                     coalition2.setId(c_id++);
-                    sendCoalition(coalition2);
+                    sendCoalition(coalition2, time);
                     coalitionMap.put(minSize, coalition);
                 } else {
                     if (coalition2.getJobs() == null)
@@ -163,7 +165,7 @@ public class CoalitionReasoner {
             update(c, time);
             c = coalitionRepository.findOne(c.getId());
             if (c.getCurrentETA() > (time + Configuration.STEP) * Configuration.TIME_DIVISOR)
-                sendCoalition(c);
+                sendCoalition(c, time);
         }
     }
 
