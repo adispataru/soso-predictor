@@ -68,7 +68,7 @@ public class CoalitionReasoner {
 
     public void sendCoalition(Coalition c, long time) {
 
-        if(c.getCurrentETA() == 0L) {
+        if(c.getCurrentETA() == null) {
 //            for (Machine m : c.getMachines()) {
 ////                Machine m = machineRepository.findOne(mID);
 //                if (m.getETA() > c.getCurrentETA()) {
