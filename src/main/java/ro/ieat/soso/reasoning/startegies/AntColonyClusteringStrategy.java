@@ -109,6 +109,10 @@ public class AntColonyClusteringStrategy {
             firstAnt.meetingCounter ++;
             secondAnt.meetingCounter ++;
             Double similarity = similarityMap.get(first).get(second);
+            if(similarity == null){
+                System.out.print("null similarity");
+                similarity = .0;
+            }
             if(similarity > firstAnt.threshold && similarity > secondAnt.threshold){
                 applyAcceptRules(firstAnt, secondAnt, clusters);
             }else{
