@@ -103,7 +103,7 @@ public class AntColonyClusteringStrategy {
 
     private Map<Long, List<Ant>> randomMeetAnts(List<Ant> ants) {
         Random r = new Random();
-        int total = 12600;
+        int total = 1000000;
         Map<Long, List<Ant>> clusters = new TreeMap<>();
         for (int i = 0; i < total; i++){
             Integer first = r.nextInt(ants.size());
@@ -212,7 +212,7 @@ public class AntColonyClusteringStrategy {
     }
 
     public void learnThreshold(List<Ant> ants){
-        int sampleSize = 100;
+        int sampleSize = 3000;
 
         for(int i = 0; i < ants.size(); i++){
 
