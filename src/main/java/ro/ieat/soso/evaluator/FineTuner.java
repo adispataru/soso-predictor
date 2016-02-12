@@ -111,8 +111,8 @@ public class FineTuner {
         Map<Long, TaskUsage> loadMap = new TreeMap<>();
         Map<Long, TaskUsage> loadMapRandom = new TreeMap<>();
 
-        Map<Long, UsageError> usageErrorMap = new TreeMap<>();
-        Map<Long, UsageError> usageErrorMapRandom = new TreeMap<>();
+//        Map<Long, UsageError> usageErrorMap = new TreeMap<>();
+//        Map<Long, UsageError> usageErrorMapRandom = new TreeMap<>();
 
         Long schedulingErrors = 0L;
         Long schedulingErrorsRandom = 0L;
@@ -215,8 +215,8 @@ public class FineTuner {
             loadMapRandom.put(m.getId(), machineLoadRandom);
 
 
-            usageErrorMap.put(m.getId(), new UsageError(machineLoadWithoutCurrent, m.getUsagePrediction()));
-            usageErrorMapRandom.put(m.getId(), new UsageError(machineLoadWithoutCurrentRandom, m.getUsagePrediction()));
+//            usageErrorMap.put(m.getId(), new UsageError(machineLoadWithoutCurrent, m.getUsagePrediction()));
+//            usageErrorMapRandom.put(m.getId(), new UsageError(machineLoadWithoutCurrentRandom, m.getUsagePrediction()));
 
             int i = usageList.size() - 1;
             //actually makes sense to subtract usage of task which produced error.
@@ -257,7 +257,7 @@ public class FineTuner {
         }
 
         LOG.info("Writing usage error.");
-        writeUsageError(usageErrorMap, time);
+//        writeUsageError(usageErrorMap, time);
 
         LOG.info("Writing load.");
         writeLoad(loadMap, time, "rb-tree");
