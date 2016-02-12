@@ -149,6 +149,8 @@ public class AntColonyClusteringStrategy {
         if(firstAnt.label.equals(0L) && secondAnt.label.equals(0L)){
             Long firstMaxHere = machineMaxTaskMapping.get(firstAnt.data.getId());
             Long secondMaxHere = machineMaxTaskMapping.get(secondAnt.data.getId());
+            if(firstMaxHere == null && secondMaxHere == null)
+                return;
             Long label = Math.max(firstMaxHere != null ? firstMaxHere : 0L,
                     secondMaxHere != null ? secondMaxHere : 0L);
             firstAnt.label = label;
