@@ -82,6 +82,7 @@ public class AntColonyClusteringStrategy {
         List<Coalition> result = new ArrayList<>();
         for(Long label : clusters.keySet()){
             int size = clusters.get(label).size();
+            LOG.info("Cluster " + label + "; size: " + size);
             int processed = 0;
             while (processed <= size - label){
                 Coalition c = new Coalition();
@@ -160,14 +161,17 @@ public class AntColonyClusteringStrategy {
             }
             clusters.get(label).add(firstAnt);
             clusters.get(label).add(firstAnt);
+            return;
         }
         if(firstAnt.label.equals(0L) && !secondAnt.label.equals(0L)){
             firstAnt.label = secondAnt.label;
             clusters.get(secondAnt.label).add(firstAnt);
+            return;
         }
         if(!firstAnt.label.equals(0L) && secondAnt.label.equals(0L)){
             secondAnt.label = firstAnt.label;
             clusters.get(firstAnt.label).add(secondAnt);
+            return;
         }
         if(!firstAnt.label.equals(0L) && !secondAnt.label.equals(0L)){
             if(firstAnt.label.equals(secondAnt.label)){
@@ -193,7 +197,6 @@ public class AntColonyClusteringStrategy {
                 }
 
             }
-
         }
 
 
