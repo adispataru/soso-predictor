@@ -142,8 +142,10 @@ public class AntColonyClusteringStrategy {
 
     private void applyAcceptRules(Ant firstAnt, Ant secondAnt, Map<Long, List<Ant>> clusters) {
         if(firstAnt.label == 0 && secondAnt.label == 0){
-            Long label = Math.max(machineMaxTaskMapping.get(firstAnt.data.getId()),
-                    machineMaxTaskMapping.get(secondAnt.data.getId()));
+            Long firstMaxHere = machineMaxTaskMapping.get(firstAnt.data.getId());
+            Long secondMaxHere = machineMaxTaskMapping.get(secondAnt.data.getId());
+            Long label = Math.max(firstMaxHere != null ? firstMaxHere : 0,
+                    secondMaxHere != null ? secondMaxHere : 0);
             firstAnt.label = label;
             secondAnt.label = label;
             if(!clusters.containsKey(label)) {
@@ -235,8 +237,12 @@ public class AntColonyClusteringStrategy {
         LOG.info(a.data.getId() + " first id.");
         LOG.info(ant.data.getId() + " second id.");
         LOG.info(machineMaxTaskMapping.size() + " size.");
-        Long firstMax = machineMaxTaskMapping.get(a.data.getId());
-        Long secondMax = machineMaxTaskMapping.get(ant.data.getId());
+        Long firstMax = 0L;
+        if(machineMaxTaskMapping.get(a.data.getId()) != null)
+            firstMax = machineMaxTaskMapping.get(a.data.getId());
+        Long secondMax = 0L;
+         if(machineMaxTaskMapping.get(ant.data.getId()) != null)
+             secondMax = machineMaxTaskMapping.get(ant.data.getId());
         similarity = 1 - gamma * Math.abs(firstMax - secondMax)/ Math.max(firstMax, secondMax);
         return similarity;
     }
