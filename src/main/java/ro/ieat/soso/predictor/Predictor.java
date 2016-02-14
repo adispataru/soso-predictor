@@ -225,6 +225,8 @@ public  class Predictor {
                 logicJobNames.add(job.getLogicJobName());
         });
         List<JobDuration> durations = new ArrayList<>();
+        LOG.info("Logic job name list size: " + logicJobNames.size());
+        LOG.info("All jobs name list size: " + all.size());
 
         for(String logicJobName : logicJobNames){
             List<Job> jobs = all.stream().filter(j ->
