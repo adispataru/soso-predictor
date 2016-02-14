@@ -204,16 +204,19 @@ public  class Predictor {
     public JobDuration computeJobDuration(List<Job> jobs){
         List<Duration> durationList = new ArrayList<Duration>();
         for(Job j : jobs){
-            if(j.getFinishTime() == 0 || j.getScheduleTime() == 0 || !"finish".equals(j.getStatus()))
+            if(j.getFinishTime() == 0 || j.getScheduleTime() == 0 || !" ".equals(j.getStatus()))
                 continue;
             Duration duration = new Duration(j.getFinishTime() - j.getScheduleTime());
             if(duration.longValue() > 0)
                 durationList.add(duration);
         }
-        Duration d = (Duration) PredictionFactory.getPredictionMethod("job").predict(durationList);
-        JobDuration duration = new JobDuration();
-        duration.setDuration(d);
-        return duration;
+        if(durationList.size() > 0) {
+            Duration d = (Duration) PredictionFactory.getPredictionMethod("job").predict(durationList);
+            JobDuration duration = new JobDuration();
+            duration.setDuration(d);
+            return duration;
+        }
+        return null;
     }
 
     @RequestMapping(method = RequestMethod.PUT, path = "/predict/job/{historyStart}/{historyEnd}")
@@ -233,8 +236,10 @@ public  class Predictor {
                     j.getSubmitTime() < historyEnd && j.getLogicJobName().equals(logicJobName))
                     .collect(Collectors.toList());
             JobDuration duration = computeJobDuration(jobs);
-            duration.setLogicJobName(logicJobName);
-            durations.add(duration);
+            if(duration != null) {
+                duration.setLogicJobName(logicJobName);
+                durations.add(duration);
+            }
         }
 
         jobDurationRepository.save(durations);

@@ -15,13 +15,15 @@ public class PessimisticDurationPrediction implements PredictionMethod {
 
     @Override
     public Predictable predict(List<? extends Predictable> list) {
-        if(list.get(0) instanceof TaskUsage)
+
+        if(list.get(0) instanceof Duration)
             return predictTaskUsage(list);
         return null;
     }
 
     public Duration predictTaskUsage(List<? extends Predictable> taskUsageList){
         Duration result = null;
+
 
         for(Duration usage : (List<Duration>) taskUsageList){
             if(usage.longValue() > result.longValue())
