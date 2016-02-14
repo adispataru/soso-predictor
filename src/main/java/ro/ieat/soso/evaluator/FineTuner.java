@@ -141,7 +141,7 @@ public class FineTuner {
 
         List<ScheduledJob> scheduledJobs = scheduledRepository.findByScheduleType("rb-tree");
         List<ScheduledJob> scheduledJobsRandom = scheduledRepository.findByScheduleType("random");
-        LOG.severe("Scheduled tasks:\nrandom: " + scheduledJobsRandom.size() + "\nrb-tree: " + scheduledJobs.size());
+        LOG.severe("Scheduled jobs:\nrandom: " + scheduledJobsRandom.size() + "\nrb-tree: " + scheduledJobs.size());
 
         scheduledRepository.delete(scheduledJobs);
         scheduledRepository.delete(scheduledJobsRandom);
