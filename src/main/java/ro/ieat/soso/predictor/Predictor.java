@@ -204,8 +204,10 @@ public  class Predictor {
     public JobDuration computeJobDuration(List<Job> jobs){
         List<Duration> durationList = new ArrayList<Duration>();
         for(Job j : jobs){
-            if(j.getFinishTime() == 0 || j.getScheduleTime() == 0 || !" ".equals(j.getStatus()))
+            if(j.getFinishTime() == 0 || j.getScheduleTime() == 0){
+                LOG.info("one time = zero");
                 continue;
+            }
             Duration duration = new Duration(j.getFinishTime() - j.getScheduleTime());
             if(duration.longValue() > 0)
                 durationList.add(duration);
@@ -234,6 +236,7 @@ public  class Predictor {
         for(String logicJobName : logicJobNames){
             List<Job> jobs = all.stream().filter(j -> j.getLogicJobName().equals(logicJobName))
                     .collect(Collectors.toList());
+            LOG.info("Jobs to compute: " + jobs.size());
             JobDuration duration = computeJobDuration(jobs);
             if(duration != null) {
                 duration.setLogicJobName(logicJobName);
