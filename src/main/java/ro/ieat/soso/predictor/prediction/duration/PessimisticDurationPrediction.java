@@ -1,6 +1,5 @@
 package ro.ieat.soso.predictor.prediction.duration;
 
-import ro.ieat.soso.core.jobs.TaskUsage;
 import ro.ieat.soso.core.prediction.Duration;
 import ro.ieat.soso.core.prediction.Predictable;
 import ro.ieat.soso.core.prediction.PredictionMethod;
@@ -17,12 +16,12 @@ public class PessimisticDurationPrediction implements PredictionMethod {
     public Predictable predict(List<? extends Predictable> list) {
 
         if(list.get(0) instanceof Duration)
-            return predictTaskUsage(list);
+            return predictTaskDuration(list);
         return null;
     }
 
-    public Duration predictTaskUsage(List<? extends Predictable> taskUsageList){
-        Duration result = null;
+    public Duration predictTaskDuration(List<? extends Predictable> taskUsageList){
+        Duration result = new Duration(Long.MIN_VALUE);
 
 
         for(Duration usage : (List<Duration>) taskUsageList){
