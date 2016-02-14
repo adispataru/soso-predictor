@@ -218,7 +218,7 @@ public  class Predictor {
 
     @RequestMapping(method = RequestMethod.PUT, path = "/predict/job/{historyStart}/{historyEnd}")
     public void predictAllJobsRuntime(@PathVariable final Long historyStart,@PathVariable final Long historyEnd) throws IOException {
-        List<Job> all = jobRepository.findBySubmitTimeBetween(historyStart, historyEnd);
+        List<Job> all = jobRepository.findBySubmitTimeBetween(historyStart, historyEnd * Configuration.TIME_DIVISOR);
         List<String> logicJobNames = new ArrayList<>();
         all.stream().forEach((job) -> {
             if(!logicJobNames.contains(job.getLogicJobName()))

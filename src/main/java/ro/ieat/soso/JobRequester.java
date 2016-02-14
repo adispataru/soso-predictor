@@ -180,7 +180,7 @@ public class JobRequester {
         //TODO This will be added in future versions
 //        time = System.currentTimeMillis();
         LOG.info("Predicting job runtime");
-        template.put("http://localhost:8088/predict/job/" + initStart + "/" + initEnd, 1);
+        template.put("http://localhost:8088/predict/job/0/" + initEnd, 1);
         LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
 
         time = System.currentTimeMillis();
