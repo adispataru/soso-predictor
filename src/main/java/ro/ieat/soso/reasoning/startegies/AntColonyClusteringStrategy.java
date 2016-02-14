@@ -89,7 +89,7 @@ public class AntColonyClusteringStrategy {
                 c.setId(0);
                 c.setConfidenceLevel(1.0);
                 List<Machine> machineList = new ArrayList<>();
-                for(int i = processed; i < label + processed; i++){
+                for(int i = processed; i < (!label.equals(0L) ? label + processed : processed + 1) ; i++){
                     machineList.add(clusters.get(label).get(i).data);
                 }
                 c.setMachines(machineList);
