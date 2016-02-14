@@ -93,6 +93,7 @@ public class AntColonyClusteringStrategy {
                     machineList.add(clusters.get(label).get(i).data);
                 }
                 c.setMachines(machineList);
+                LOG.info("MAchines in coalition: " + c.getMachines().size());
                 result.add(c);
                 processed += label > 0 ? label : 1;
             }
