@@ -258,6 +258,7 @@ public class JobRequester {
             }
             writeJobSchedulingErrors(notScheduledJobs, notScheduledJobsRandom, sent, total, time);
 
+
             initEnd = time;
             time += Configuration.STEP;
             template = new RestTemplate();
@@ -269,6 +270,9 @@ public class JobRequester {
                 coalitionClient.sendJobRequest(endJob, jobRequestTargetUrl2);
             }
             template.put("http://localhost:8088/finetuner/" + initEnd, 1);
+            LOG.info("Predicting job runtime");
+            template.put("http://localhost:8088/predict/job/" + initEnd +"/" + time, 1);
+            LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
             updateCoalition = true;
         }
 
