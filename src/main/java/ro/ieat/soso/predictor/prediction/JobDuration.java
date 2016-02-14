@@ -9,7 +9,7 @@ import ro.ieat.soso.core.prediction.Duration;
 public class JobDuration {
     @Id
     private String logicJobName;
-    private Duration duration;
+    private Long duration;
 
 
     public String getLogicJobName() {
@@ -20,11 +20,11 @@ public class JobDuration {
         this.logicJobName = logicJobName;
     }
 
-    public Duration getDuration() {
+    public Long getDuration() {
         return duration;
     }
 
-    public void setDuration(Duration duration) {
+    public void setDuration(Long duration) {
         this.duration = duration;
     }
 

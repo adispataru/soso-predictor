@@ -215,7 +215,7 @@ public  class Predictor {
         if(durationList.size() > 0) {
             Duration d = (Duration) PredictionFactory.getPredictionMethod("job").predict(durationList);
             JobDuration duration = new JobDuration();
-            duration.setDuration(d);
+            duration.setDuration(d.longValue());
             return duration;
         }
         return null;
