@@ -232,8 +232,7 @@ public  class Predictor {
         LOG.info("All jobs name list size: " + all.size());
 
         for(String logicJobName : logicJobNames){
-            List<Job> jobs = all.stream().filter(j ->
-                    j.getSubmitTime() < historyEnd && j.getLogicJobName().equals(logicJobName))
+            List<Job> jobs = all.stream().filter(j -> j.getLogicJobName().equals(logicJobName))
                     .collect(Collectors.toList());
             JobDuration duration = computeJobDuration(jobs);
             if(duration != null) {
@@ -244,6 +243,7 @@ public  class Predictor {
 
         jobDurationRepository.save(durations);
         CoalitionClient client = new CoalitionClient();
+        LOG.info("Sending job history size: " + durations.size());
         client.sendJobRuntimePrediction(durations);
     }
 
