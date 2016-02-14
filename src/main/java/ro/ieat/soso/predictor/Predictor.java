@@ -189,7 +189,7 @@ public  class Predictor {
         return machineUsage;
     }
 
-    @RequestMapping(method = RequestMethod.PUT, path = "/predict/job/{logicJobName}/{historyEnd}")
+    @RequestMapping(method = RequestMethod.PUT, path = "/predict/job/l/{logicJobName}/{historyEnd}")
     public void predictJobRuntime(@PathVariable final String logicJobName, Long historyEnd) throws IOException {
 
 
