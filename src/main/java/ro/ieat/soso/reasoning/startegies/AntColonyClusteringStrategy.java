@@ -101,7 +101,7 @@ public class AntColonyClusteringStrategy {
                     }
 
                     c.setMachines(machineList);
-                    LOG.info("MAchines in coalition: " + c.getMachines().size());
+                    LOG.info("Coalition info: "  + c.getMachines().size());
                     result.add(c);;
                     processed += i;
                 }
