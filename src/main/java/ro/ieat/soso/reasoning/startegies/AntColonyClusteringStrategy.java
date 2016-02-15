@@ -163,6 +163,11 @@ public class AntColonyClusteringStrategy {
             }
 
         }
+        for(Ant a : ants){
+            if(!clusters.get(a.label).contains(a)){
+                clusters.get(a.label).add(a);
+            }
+        }
         return clusters;
     }
 
@@ -317,6 +322,14 @@ public class AntColonyClusteringStrategy {
             this.m = .0;
             mPlus = .0;
 
+        }
+
+        public boolean equals(Object o){
+            if(o instanceof Ant){
+                Ant a = (Ant) o;
+                return a.data.getId().equals(this.data.getId());
+            }
+            return false;
         }
 
         public void reset(){
