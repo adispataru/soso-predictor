@@ -164,6 +164,8 @@ public class AntColonyClusteringStrategy {
 
         }
         for(Ant a : ants){
+            if(clusters.get(a.label) == null)
+                clusters.put(a.label, new ArrayList<>());
             if(!clusters.get(a.label).contains(a)){
                 clusters.get(a.label).add(a);
             }
