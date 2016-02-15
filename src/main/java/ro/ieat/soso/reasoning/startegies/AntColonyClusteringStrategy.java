@@ -81,23 +81,61 @@ public class AntColonyClusteringStrategy {
         LOG.info("Creating coalitions from clusters...");
         List<Coalition> result = new ArrayList<>();
         for(Long label : clusters.keySet()){
-            int size = clusters.get(label).size();
-            LOG.info("Cluster " + label + "; size: " + size);
-            int processed = 0;
-            while (processed <= size - label){
-                Coalition c = new Coalition();
-                c.setId(0);
-                c.setConfidenceLevel(1.0);
-                List<Machine> machineList = new ArrayList<>();
-                LOG.severe("Processed label size: " + processed + " " + label + " " + size);
-                for(int i = processed; i < (!label.equals(0L) ? label + processed : processed + 1) && i < size - label; i++){
-                    machineList.add(clusters.get(label).get(i).data);
+            if(!label.equals(0L)) {
+                int size = clusters.get(label).size();
+                LOG.info("Cluster " + label + "; size: " + size);
+                int processed = 0;
+                while (processed < size - label) {
+                    Coalition c = new Coalition();
+                    c.setId(0);
+                    c.setConfidenceLevel(1.0);
+                    List<Machine> machineList = new ArrayList<>();
+                    LOG.severe("Processed label size: " + processed + " " + label + " " + size);
+                    int i;
+                    for (i = processed; i < processed + label; i++) {
+                        machineList.add(clusters.get(label).get(i).data);
+                    }
+                    while (machineList.size() < label && clusters.get(0L).size() > 0){
+                        machineList.add(clusters.get(0L).remove(0).data);
+                        i++;
+                    }
+
+                    c.setMachines(machineList);
+                    LOG.info("MAchines in coalition: " + c.getMachines().size());
+                    result.add(c);;
+                    processed += i;
                 }
-                c.setMachines(machineList);
-                LOG.info("MAchines in coalition: " + c.getMachines().size());
-                result.add(c);
-                processed += label > 0 ? label : 1;
+                while(processed < label){
+                    Coalition c = new Coalition();
+                    c.setId(0);
+                    c.setConfidenceLevel(1.0);
+                    List<Machine> machineList = new ArrayList<>();
+                    LOG.severe("Processed label size: " + processed + " " + label + " " + size);
+                    int i;
+                    for (i = 0; i < clusters.get(label).size(); i++) {
+                        machineList.add(clusters.get(label).get(i).data);
+                    }
+                    while (machineList.size() < label && clusters.get(0L).size() > 0){
+                        machineList.add(clusters.get(0L).remove(0).data);
+                        i++;
+                    }
+
+                    c.setMachines(machineList);
+                    LOG.info("MAchines in coalition: " + c.getMachines().size());
+                    result.add(c);;
+                    processed += i;
+                }
+
             }
+        }
+        for(Ant ant : clusters.get(0L)){
+            Coalition c = new Coalition();
+            c.setId(0);
+            c.setConfidenceLevel(1.0);
+            List<Machine> machineList = new ArrayList<>();
+            machineList.add(ant.data);
+            c.setMachines(machineList);
+            result.add(c);
         }
         LOG.info("Created " + result.size() + " coalitions!");
         return result;
