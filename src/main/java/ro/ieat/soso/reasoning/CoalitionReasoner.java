@@ -83,8 +83,10 @@ public class CoalitionReasoner {
 
 //        LOG.info("Sending coalition " + c.getId() + "with size " + c.getMachines().size());
 
-        LOG.info("Sending coalition");
-        LOG.info(String.format("id: %d\nsize: %d\neta: %d\n",c.getId(), c.getMachines().size(), c.getCurrentETA()));
+        if(c.getMachines().size() > 1) {
+            LOG.info("Sending coalition");
+            LOG.info(String.format("id: %d\nsize: %d\neta: %d\n", c.getId(), c.getMachines().size(), c.getCurrentETA()));
+        }
         coalitionClient.sendCoalition(c);
     }
 
