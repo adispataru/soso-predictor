@@ -216,12 +216,12 @@ public class FineTuner {
 //            LOG.info("Computing usage");
 //            long filterTime = System.currentTimeMillis();
             List<TaskUsage> usageList = allTaskUsageList.stream().filter(t ->
-                            isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), allscheduledJobs, "rb-tree"))
+                            isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobs, "rb-tree"))
                     .collect(Collectors.toList());
 
 
             List<TaskUsage> usageListRandom = allTaskUsageList.stream().filter(t ->
-                    (isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), allscheduledJobsRandom, "random")))
+                    (isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobsRandom, "random")))
                     .collect(Collectors.toList());
 
 //            LOG.info("Done in " + (System.currentTimeMillis() - filterTime) + " s.");
