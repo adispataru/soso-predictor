@@ -73,7 +73,7 @@ public class FineTuner {
 
 
 
-    public boolean isTaskScheduledOnMachine(long jobId, Long taskIndex, Long taskMachineId, Long machineId,
+    public boolean isTaskScheduledOnMachine(Long jobId, Long taskIndex, Long taskMachineId, Long machineId,
                                             List<ScheduledJob> list, String type) {
         if(type.equals("rb-tree")) {
             if (!scheduledJobMap.containsKey(list.get(0).getJobId())) {
@@ -91,7 +91,7 @@ public class FineTuner {
 
     }
 
-    private boolean isTaskScheduled(long jobId, Long taskIndex, Long taskMachineId, Long machineId, Map<Long, ScheduledJob> scheduledJobMap) {
+    private boolean isTaskScheduled(Long jobId, Long taskIndex, Long taskMachineId, Long machineId, Map<Long, ScheduledJob> scheduledJobMap) {
         ScheduledJob scheduledJob = scheduledJobMap.get(jobId);
         if(scheduledJob != null) {
             return scheduledJob.getTaskMachineMapping().get(taskIndex).equals(machineId);
@@ -186,6 +186,7 @@ public class FineTuner {
             jobRepository.findBySubmitTimeBetween(0L, App.jobSendingTime * Configuration.TIME_DIVISOR).forEach(
                     j -> preScheduledJobs.put(j.getJobId(), j)
             );
+            LOG.info("Prescheduled jobs = " + preScheduledJobs.size());
         }
 
 //        scheduledRepository.delete(scheduledJobs);
