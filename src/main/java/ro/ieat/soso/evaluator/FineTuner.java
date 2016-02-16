@@ -183,7 +183,7 @@ public class FineTuner {
 
         if(preScheduledJobs == null){
             preScheduledJobs = new TreeMap<>();
-            jobRepository.findBySubmitTimeBetween(0L, App.jobSendingTime).forEach(
+            jobRepository.findBySubmitTimeBetween(0L, App.jobSendingTime * Configuration.TIME_DIVISOR).forEach(
                     j -> preScheduledJobs.put(j.getJobId(), j)
             );
         }
