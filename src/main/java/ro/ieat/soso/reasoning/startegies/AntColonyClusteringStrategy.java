@@ -47,8 +47,17 @@ public class AntColonyClusteringStrategy {
         LOG.info("Processing clusters..." + clusters.size());
         for(Long label : clusters.keySet()){
             Double mPlus = .0;
-            for(Ant ant : clusters.get(label)){
+            for(int i = 0; i < clusters.get(label).size(); i++){
+                Ant ant = clusters.get(label).get(i);
                 mPlus += ant.mPlus;
+                for(int j = i + 1; j < clusters.get(label).size(); j++){
+                    if(clusters.get(label).get(j).data.getId().equals(ant.data.getId())){
+                        LOG.info("Eliminating duplicates");
+                        clusters.get(label).remove(j);
+                        --j;
+                    }
+
+                }
             }
             mPlus /= clusters.get(label).size();
 
