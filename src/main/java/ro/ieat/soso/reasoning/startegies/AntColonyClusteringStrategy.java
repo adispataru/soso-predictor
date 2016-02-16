@@ -56,6 +56,7 @@ public class AntColonyClusteringStrategy {
             Double acceptanceProbability = alpha * mPlus + (1 - alpha) * nCluster;
             if(acceptanceProbability < dropProbability){
                 freeAnts.addAll(clusters.get(label));
+                clusters.put(label, new ArrayList<>());
             }else {
                 nClusters.put(label, nCluster);
                 averageMPlus.put(label, mPlus);
