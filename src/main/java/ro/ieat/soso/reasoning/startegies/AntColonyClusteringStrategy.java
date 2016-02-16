@@ -127,7 +127,7 @@ public class AntColonyClusteringStrategy {
                         //add machine to coalition if cpu is at least as the first one's
                         for(int k = 0; k < first; k++) {
                             if(clusters.get(0L).get(j).data.getId().equals(machineList.get(k).getId()))
-                                continue;
+                                break;
                             if (clusters.get(0L).get(j).data.getCpu() >= machineList.get(k).getCpu()) {
                                 machineList.add(clusters.get(0L).remove(j).data);
                                 --j;
@@ -200,7 +200,6 @@ public class AntColonyClusteringStrategy {
         LOG.info(String.format("Accept: %d/Reject: %d/Total: %d", acc, rej, total));
         for(Ant a : ants){
             if(clusters.get(a.label) == null)
-
                 clusters.put(a.label, new ArrayList<>());
             if(!clusters.get(a.label).contains(a)){
                 clusters.get(a.label).add(a);
@@ -236,8 +235,8 @@ public class AntColonyClusteringStrategy {
             Long secondMaxHere = machineMaxTaskMapping.get(secondAnt.data.getId());
             if(firstMaxHere == null && secondMaxHere == null)
                 return;
-            Long label = Math.max(firstMaxHere != null ? firstMaxHere : 0L,
-                    secondMaxHere != null ? secondMaxHere : 0L);
+            Long label = Math.max(firstMaxHere != null ? firstMaxHere : firstAnt.label,
+                    secondMaxHere != null ? secondMaxHere : secondAnt.label);
             firstAnt.label = label;
             secondAnt.label = label;
             if(!clusters.containsKey(label)) {
