@@ -103,6 +103,8 @@ public class FineTuner {
     @RequestMapping(method = RequestMethod.PUT, path = "/finetuner/{time}")
     public void fineTuneAndWriteResults(@PathVariable  Long time){
 
+        long measurementTime = System.currentTimeMillis();
+
         long lowTime = (time - Configuration.STEP) * Configuration.TIME_DIVISOR;
         time *= Configuration.TIME_DIVISOR;
         Logger LOG = Logger.getLogger("FineTuner");
@@ -171,11 +173,11 @@ public class FineTuner {
             scheduledTasksRandom += j.getTaskMachineMapping().size();
         }
 
-
-
         for(Machine m : machineRepository.findAll()){
 
 
+            LOG.info("Computing usage");
+            long filterTime = System.currentTimeMillis();
             List<TaskUsage> usageList = allTaskUsageList.stream().filter(t ->
                             isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobs))
                     .collect(Collectors.toList());
@@ -185,6 +187,8 @@ public class FineTuner {
                     (isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobsRandom)))
                     .collect(Collectors.toList());
 
+            LOG.info("Done in " + (System.currentTimeMillis() - filterTime) + " s.");
+            LOG.info("Usage size: rb-tree/random" + usageList.size() + " / " + usageListRandom.size());
 //            List<TaskUsage> usageWithoutScheduled = usageList.stream().filter(t -> !jobListContainsId(jobList, t.getId()))
 //                    .collect(Collectors.toList());
 
@@ -258,7 +262,10 @@ public class FineTuner {
             }
         }
 
-        LOG.info("Writing usage error.");
+
+        long computeMeasurementTime = System.currentTimeMillis();
+        LOG.info("Computing time: " + (computeMeasurementTime - measurementTime) / 1000);
+//        LOG.info("Writing usage error.");
 //        writeUsageError(usageErrorMap, time);
 
         LOG.info("Writing load.");
@@ -272,28 +279,28 @@ public class FineTuner {
         long idleCoalitions = 0;
         long idleCoalitionsRandom = 0;
         List<Coalition> coalitions = coalitionRepository.findAll();
-//        for(Coalition c : coalitions){
-//            long totalIdle = 0;
-//            long totalIdleRandom = 0;
-//            for(Machine machineId : c.getMachines()){
-//                if(loadMap.get(machineId.getId()).getCpu() < IDLE_THRESHOLD)
-//                    totalIdle++;
-//                if(loadMapRandom.get(machineId.getId()).getCpu() < IDLE_THRESHOLD)
-//                    totalIdleRandom++;
-//            }
-//            if(totalIdle == c.getMachines().size())
-//                idleCoalitions++;
-//            if(totalIdleRandom == c.getMachines().size())
-//                idleCoalitionsRandom++;
-//        }
+        for(Coalition c : coalitions){
+            long totalIdle = 0;
+            long totalIdleRandom = 0;
+            for(Machine machineId : c.getMachines()){
+                if(loadMap.get(machineId.getId()).getCpu() < IDLE_THRESHOLD)
+                    totalIdle++;
+                if(loadMapRandom.get(machineId.getId()).getCpu() < IDLE_THRESHOLD)
+                    totalIdleRandom++;
+            }
+            if(totalIdle == c.getMachines().size())
+                idleCoalitions++;
+            if(totalIdleRandom == c.getMachines().size())
+                idleCoalitionsRandom++;
+        }
 
-//        LOG.info("Writing idle coalitions");
-//        writeIdleCoalition(idleCoalitions, coalitions.size(), time, "rb-tree");
-//        writeIdleCoalition(idleCoalitionsRandom, coalitions.size(), time, "random");
+        LOG.info("Writing idle coalitions");
+        writeIdleCoalition(idleCoalitions, coalitions.size(), time, "rb-tree");
+        writeIdleCoalition(idleCoalitionsRandom, coalitions.size(), time, "random");
         writeLateness(latenessList, latenessListRandom, time);
 
+        LOG.info("Finished writing: " + (System.currentTimeMillis() - computeMeasurementTime) / 1000);
 
-//        writeResults(usageErrorMap, loadMap, idleCoalitions, coalitions.size(), schedulingErrors, scheduledTasks, runtimeErrors, time);
 
     }
 
