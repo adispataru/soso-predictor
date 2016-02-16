@@ -99,7 +99,7 @@ public class FineTuner {
         else{
             Job j = preScheduledJobs.get(jobId);
             if(j != null){
-                return  taskMachineId == machineId;
+                return  taskMachineId.equals(machineId);
             }
         }
         return false;
