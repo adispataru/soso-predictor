@@ -114,8 +114,10 @@ public class AntColonyClusteringStrategy {
 
                             boolean contains = false;
                             for(Machine m : machineList){
-                                if(m.getId().equals(clusters.get(label).get(i).data.getId()))
+                                if(m.getId().equals(clusters.get(label).get(i).data.getId())) {
                                     contains = true;
+                                    break;
+                                }
                             }
                             if(!contains)
                                 machineList.add(clusters.get(label).get(i).data);

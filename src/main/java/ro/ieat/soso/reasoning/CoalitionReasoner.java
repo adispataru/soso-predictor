@@ -87,11 +87,23 @@ public class CoalitionReasoner {
         if(c.getMachines().size() > 1) {
             Double mincpu = Double.MAX_VALUE;
             LOG.info("Sending coalition");
+            int duplicates = 0;
             for(Machine m : c.getMachines()){
                 if(mincpu > m.getCpu())
                     mincpu = m.getCpu();
+                boolean self = false;
+                for(Machine m1: c.getMachines()){
+                    if(m1.getId().equals(m.getId())){
+                        if(self){
+                            duplicates++;
+                        }else{
+                            self = true;
+                        }
+                    }
+                }
             }
-            LOG.info(String.format("id: %d\nsize: %d\neta: %d\nmin_cpu: %.4f", c.getId(), c.getMachines().size(), c.getCurrentETA(), mincpu));
+            LOG.info(String.format("id: %d\nsize: %d\neta: %d\nmin_cpu: %.4f\nduplicates: %d\n",
+                    c.getId(), c.getMachines().size(), c.getCurrentETA(), mincpu, duplicates));
         }
         coalitionClient.sendCoalition(c);
     }
