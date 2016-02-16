@@ -227,6 +227,7 @@ public class JobRequester {
                 total += j.getTaskHistory().size();
                 Double maxCpu = Double.MIN_VALUE;
                 for(TaskHistory th : j.getTaskHistory().values()){
+                    LOG.info("Requested CPU: " + th.getRequestedCPU());
                     if(maxCpu < th.getRequestedCPU())
                         maxCpu = th.getRequestedCPU();
                 }
