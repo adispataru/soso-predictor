@@ -11,6 +11,7 @@ import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.config.Configuration;
 import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.jobs.ScheduledJob;
+import ro.ieat.soso.core.jobs.TaskHistory;
 import ro.ieat.soso.core.jobs.TaskUsage;
 import ro.ieat.soso.core.mappers.JobEventsMapper;
 import ro.ieat.soso.core.mappers.MachineEventsMapper;
@@ -224,6 +225,12 @@ public class JobRequester {
 
                 //LOG.info("For job " + j.getJobId() + " status is " + j.getStatus() + " at time " + j.getSubmitTime());
                 total += j.getTaskHistory().size();
+                Double maxCpu = Double.MIN_VALUE;
+                for(TaskHistory th : j.getTaskHistory().values()){
+                    if(maxCpu < th.getRequestedCPU())
+                        maxCpu = th.getRequestedCPU();
+                }
+                LOG.info("Max requested CPU: " + maxCpu);
 
                 if (j.getStatus() != null) {
                     sent += j.getTaskHistory().size();
