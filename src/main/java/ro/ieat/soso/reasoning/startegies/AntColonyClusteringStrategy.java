@@ -96,15 +96,11 @@ public class AntColonyClusteringStrategy {
                     for (i = processed; i < processed + label; i++) {
                         machineList.add(clusters.get(label).get(i).data);
                     }
-                    while (machineList.size() < label && clusters.get(0L).size() > 0){
-                        machineList.add(clusters.get(0L).remove(0).data);
-                        i++;
-                    }
 
                     c.setMachines(machineList);
                     LOG.info("Coalition info: "  + c.getMachines().size());
                     result.add(c);;
-                    processed += i;
+                    processed = i;
                 }
                 while(processed < label){
                     Coalition c = new Coalition();
