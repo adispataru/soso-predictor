@@ -299,6 +299,8 @@ public class AntColonyClusteringStrategy {
             int index = new Random().nextInt(ants.size() - sampleSize);
             for(int j = 0; j < sampleSize; j++){
                 Double similarity;
+                if(j == i)
+                    continue;
 
                 if(similarityMap.get(j+index) != null && similarityMap.get(j+index).get(i) != null) {
                     similarity = similarityMap.get(j+index).get(i);
