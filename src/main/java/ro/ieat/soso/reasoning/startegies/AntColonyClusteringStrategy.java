@@ -155,6 +155,7 @@ public class AntColonyClusteringStrategy {
         Random r = new Random();
         int total = 1000000;
         Map<Long, List<Ant>> clusters = new TreeMap<>();
+        int acc = 0, rej = 0;
         for (int i = 0; i < total; i++){
             Integer first = r.nextInt(ants.size());
             Integer second = r.nextInt(ants.size());
@@ -168,11 +169,14 @@ public class AntColonyClusteringStrategy {
             }
             if(similarity > firstAnt.threshold && similarity > secondAnt.threshold){
                 applyAcceptRules(firstAnt, secondAnt, clusters);
+                acc ++;
             }else{
                 applyRejectRules(firstAnt, secondAnt, clusters);
+                rej++;
             }
 
         }
+        LOG.info(String.format("Accept: %d/Reject: %d/Total: %d", acc, rej, total);
         for(Ant a : ants){
             if(clusters.get(a.label) == null)
 
