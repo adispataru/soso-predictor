@@ -116,16 +116,15 @@ public class AntColonyClusteringStrategy {
                         machineList.add(clusters.get(label).get(i).data);
                     }
                     //add machines 'till cluster is full
-                    while (machineList.size() < label && clusters.get(0L).size() > 0){
-                        for(int j = 0; j < clusters.get(0L).size(); j++) {
-                            //add machine to coalition if cpu is at least as the first one's
-                            if(clusters.get(0L).get(j).data.getCpu() >= machineList.get(0).getCpu()) {
-                                machineList.add(clusters.get(0L).remove(j).data);
-                                --j;
-                                i++;
-                            }
+                    for(int j = 0; j < clusters.get(0L).size() && machineList.size() < label; j++) {
+                        //add machine to coalition if cpu is at least as the first one's
+                        if(clusters.get(0L).get(j).data.getCpu() >= machineList.get(0).getCpu()) {
+                            machineList.add(clusters.get(0L).remove(j).data);
+                            --j;
+                            i++;
                         }
                     }
+
 
                     c.setMachines(machineList);
                     LOG.info("MAchines in coalition: " + c.getMachines().size());
