@@ -143,10 +143,12 @@ public class FineTuner {
         }
 
         final Long finalTime = time;
-        List<ScheduledJob> scheduledJobs = scheduledRepository.findByScheduleType("rb-tree").stream().filter(s ->
+        List<ScheduledJob> allscheduledJobs = scheduledRepository.findByScheduleType("rb-tree");
+        List<ScheduledJob> allscheduledJobsRandom = scheduledRepository.findByScheduleType("random");
+        List<ScheduledJob> scheduledJobs = allscheduledJobs.stream().filter(s ->
                 s.getTimeToStart() > (finalTime - Configuration.STEP *Configuration.TIME_DIVISOR))
                 .collect(Collectors.toList());
-        List<ScheduledJob> scheduledJobsRandom = scheduledRepository.findByScheduleType("random").stream().filter(s ->
+        List<ScheduledJob> scheduledJobsRandom = allscheduledJobsRandom.stream().filter(s ->
                 s.getTimeToStart() > (finalTime - Configuration.STEP *Configuration.TIME_DIVISOR))
                 .collect(Collectors.toList());
         LOG.severe("Scheduled jobs:\nrandom: " + scheduledJobsRandom.size() + "\nrb-tree: " + scheduledJobs.size());
@@ -179,12 +181,12 @@ public class FineTuner {
             LOG.info("Computing usage");
             long filterTime = System.currentTimeMillis();
             List<TaskUsage> usageList = allTaskUsageList.stream().filter(t ->
-                            isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobs))
+                            isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), allscheduledJobs))
                     .collect(Collectors.toList());
 
 
             List<TaskUsage> usageListRandom = allTaskUsageList.stream().filter(t ->
-                    (isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobsRandom)))
+                    (isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), allscheduledJobsRandom)))
                     .collect(Collectors.toList());
 
             LOG.info("Done in " + (System.currentTimeMillis() - filterTime) + " s.");
