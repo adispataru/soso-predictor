@@ -111,9 +111,11 @@ public class AntColonyClusteringStrategy {
                     c.setConfidenceLevel(1.0);
                     List<Machine> machineList = new ArrayList<>();
                     LOG.severe("Processed label size: " + processed + " " + label + " " + size);
-                    int i;
-                    for (i = 0; i < clusters.get(label).size(); i++) {
-                        machineList.add(clusters.get(label).get(i).data);
+                    int i = 0;
+                    if(processed == 0) {
+                        for (i = 0; i < clusters.get(label).size(); i++) {
+                            machineList.add(clusters.get(label).get(i).data);
+                        }
                     }
                     int first = i;
                     //add machines 'till cluster is full
