@@ -84,7 +84,9 @@ public class FineTuner {
         if (time < App.jobSendingTime)
             return true;
         for(ScheduledJob scheduledJob : list){
-            if(scheduledJob.getJobId() == jobId)
+            if(scheduledJob.getJobId() == jobId &&
+                    scheduledJob.getTimeToStart() > time - Configuration.STEP * Configuration.TIME_DIVISOR &&
+                    scheduledJob.getTimeToStart() < time)
                 return true;
         }
         return false;
