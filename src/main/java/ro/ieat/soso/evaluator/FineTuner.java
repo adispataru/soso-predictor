@@ -178,8 +178,8 @@ public class FineTuner {
         for(Machine m : machineRepository.findAll()){
 
 
-            LOG.info("Computing usage");
-            long filterTime = System.currentTimeMillis();
+//            LOG.info("Computing usage");
+//            long filterTime = System.currentTimeMillis();
             List<TaskUsage> usageList = allTaskUsageList.stream().filter(t ->
                             isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), allscheduledJobs))
                     .collect(Collectors.toList());
@@ -189,8 +189,8 @@ public class FineTuner {
                     (isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), allscheduledJobsRandom)))
                     .collect(Collectors.toList());
 
-            LOG.info("Done in " + (System.currentTimeMillis() - filterTime) + " s.");
-            LOG.info("Usage size: rb-tree/random" + usageList.size() + " / " + usageListRandom.size());
+//            LOG.info("Done in " + (System.currentTimeMillis() - filterTime) + " s.");
+//            LOG.info("Usage size: rb-tree/random" + usageList.size() + " / " + usageListRandom.size());
 //            List<TaskUsage> usageWithoutScheduled = usageList.stream().filter(t -> !jobListContainsId(jobList, t.getId()))
 //                    .collect(Collectors.toList());
 
