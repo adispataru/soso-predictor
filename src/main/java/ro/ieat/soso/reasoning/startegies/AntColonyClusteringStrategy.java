@@ -158,7 +158,16 @@ public class AntColonyClusteringStrategy {
         int acc = 0, rej = 0;
         for (int i = 0; i < total; i++){
             Integer first = r.nextInt(ants.size());
-            Integer second = r.nextInt(ants.size());
+            //select ant to meet. it should have computed a similarity
+            int secondPosition = r.nextInt(similarityMap.get(first).size());
+            Iterator<Integer> iterator = similarityMap.get(first).keySet().iterator();
+            while (secondPosition != 0){
+                iterator.next();
+                secondPosition--;
+            }
+            Integer second = iterator.next();
+
+            //Actual meeting
             Ant firstAnt = ants.get(first);
             Ant secondAnt = ants.get(second);
             firstAnt.meetingCounter ++;
