@@ -123,6 +123,7 @@ public class AntColonyClusteringStrategy {
                                 machineList.add(clusters.get(0L).remove(j).data);
                                 --j;
                                 i++;
+                                break;
                             }
                         }
                     }
