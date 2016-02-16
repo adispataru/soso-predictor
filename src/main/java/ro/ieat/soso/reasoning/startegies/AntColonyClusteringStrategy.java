@@ -169,7 +169,6 @@ public class AntColonyClusteringStrategy {
                     similarity = similarityMap.get(second).get(first);
                 }else {
                     similarity = .0;
-                    LOG.severe("Similarity not found. Size, first, second: " + similarityMap.size() + ", " + first + ", " + second);
                 }
             }
             if(similarity > firstAnt.threshold && similarity > secondAnt.threshold){
@@ -291,8 +290,8 @@ public class AntColonyClusteringStrategy {
             for(int j = 0; j < sampleSize; j++){
                 Double similarity;
 
-                if(similarityMap.get(j) != null && similarityMap.get(j).get(i) != null) {
-                    similarity = similarityMap.get(j).get(i);
+                if(similarityMap.get(j+index) != null && similarityMap.get(j+index).get(i) != null) {
+                    similarity = similarityMap.get(j+index).get(i);
                 }
                 else {
                     similarity = computeSimilarity(a, ants.get(j + index));
