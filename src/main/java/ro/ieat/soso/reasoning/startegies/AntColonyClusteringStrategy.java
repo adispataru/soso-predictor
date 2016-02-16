@@ -176,7 +176,7 @@ public class AntColonyClusteringStrategy {
             }
 
         }
-        LOG.info(String.format("Accept: %d/Reject: %d/Total: %d", acc, rej, total);
+        LOG.info(String.format("Accept: %d/Reject: %d/Total: %d", acc, rej, total));
         for(Ant a : ants){
             if(clusters.get(a.label) == null)
 
