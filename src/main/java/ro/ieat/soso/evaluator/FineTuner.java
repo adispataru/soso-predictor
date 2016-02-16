@@ -14,7 +14,6 @@ import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.jobs.ScheduledJob;
 import ro.ieat.soso.core.jobs.TaskUsage;
 import ro.ieat.soso.persistence.*;
-import ro.ieat.soso.predictor.prediction.JobDuration;
 import ro.ieat.soso.util.TaskUsageCombiner;
 
 import java.io.File;
@@ -48,6 +47,9 @@ public class FineTuner {
     ScheduledRepository scheduledRepository;
     private static final Double THRESHOLD = 1.0;
     private static final Double IDLE_THRESHOLD = 0.05;
+    private Map<Long, ScheduledJob> scheduledJobMap = new TreeMap<>();
+    private Map<Long, ScheduledJob> scheduledJobMapRandom = new TreeMap<>();
+    Map<Long, Job> preScheduledJobs = null;
 
     RestTemplate template = new RestTemplate();
     private static final String testOutputPath = "./output/results/";
@@ -71,14 +73,39 @@ public class FineTuner {
 
 
 
-    public boolean isTaskScheduledOnMachine(long jobId, Long taskIndex, Long machineId, List<ScheduledJob> list) {
-        for(ScheduledJob scheduledJob : list){
-            if(scheduledJob.getJobId() == jobId)
-                return scheduledJob.getTaskMachineMapping().get(taskIndex).equals(machineId);
+    public boolean isTaskScheduledOnMachine(long jobId, Long taskIndex, Long machineId,
+                                            List<ScheduledJob> list, String type) {
+        if(type.equals("rb-tree")) {
+            if (!scheduledJobMap.containsKey(list.get(0).getJobId())) {
+                list.forEach(s -> scheduledJobMap.put(s.getJobId(), s));
+            }
+            return isTaskScheduled(jobId, taskIndex, machineId, scheduledJobMap);
+        }else if (type.equals("random")){
+            if (!scheduledJobMapRandom.containsKey(list.get(0).getJobId())) {
+                list.forEach(s -> scheduledJobMapRandom.put(s.getJobId(), s));
+            }
+            return isTaskScheduled(jobId, taskIndex, machineId, scheduledJobMapRandom);
         }
+
         return false;
 
     }
+
+    private boolean isTaskScheduled(long jobId, Long taskIndex, Long machineId, Map<Long, ScheduledJob> scheduledJobMap) {
+        ScheduledJob scheduledJob = scheduledJobMap.get(jobId);
+        if(scheduledJob != null) {
+            return scheduledJob.getTaskMachineMapping().get(taskIndex).equals(machineId);
+        }
+        else{
+            Job j = preScheduledJobs.get(jobId);
+            if(j != null){
+                return j.getTaskHistory().get(taskIndex).getMachineId() == machineId;
+            }
+        }
+        return false;
+    }
+
+
 
     public boolean isJobScheduled(Long time, Long jobId, List<ScheduledJob> list){
         if (time < App.jobSendingTime)
@@ -91,6 +118,7 @@ public class FineTuner {
         }
         return false;
     }
+
 
     private static long getJobScheduleTime(List<Job> list, long jobId){
         for(Job j : list)
@@ -153,6 +181,13 @@ public class FineTuner {
                 .collect(Collectors.toList());
         LOG.severe("Scheduled jobs:\nrandom: " + scheduledJobsRandom.size() + "\nrb-tree: " + scheduledJobs.size());
 
+        if(preScheduledJobs == null){
+            preScheduledJobs = new TreeMap<>();
+            jobRepository.findBySubmitTimeBetween(0L, App.jobSendingTime).forEach(
+                    j -> preScheduledJobs.put(j.getJobId(), j)
+            );
+        }
+
 //        scheduledRepository.delete(scheduledJobs);
 //        scheduledRepository.delete(scheduledJobsRandom);
         List<Long> latenessList = new ArrayList<>();
@@ -181,12 +216,12 @@ public class FineTuner {
 //            LOG.info("Computing usage");
 //            long filterTime = System.currentTimeMillis();
             List<TaskUsage> usageList = allTaskUsageList.stream().filter(t ->
-                            isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), allscheduledJobs))
+                            isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), allscheduledJobs, "rb-tree"))
                     .collect(Collectors.toList());
 
 
             List<TaskUsage> usageListRandom = allTaskUsageList.stream().filter(t ->
-                    (isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), allscheduledJobsRandom)))
+                    (isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), allscheduledJobsRandom, "random")))
                     .collect(Collectors.toList());
 
 //            LOG.info("Done in " + (System.currentTimeMillis() - filterTime) + " s.");
