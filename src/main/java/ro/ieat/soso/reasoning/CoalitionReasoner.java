@@ -2,6 +2,7 @@ package ro.ieat.soso.reasoning;
 
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.xml.DocumentDefaultsDefinition;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -84,8 +85,13 @@ public class CoalitionReasoner {
 //        LOG.info("Sending coalition " + c.getId() + "with size " + c.getMachines().size());
 
         if(c.getMachines().size() > 1) {
+            Double mincpu = Double.MAX_VALUE;
             LOG.info("Sending coalition");
-            LOG.info(String.format("id: %d\nsize: %d\neta: %d\n", c.getId(), c.getMachines().size(), c.getCurrentETA()));
+            for(Machine m : c.getMachines()){
+                if(mincpu > m.getCpu())
+                    mincpu = m.getCpu();
+            }
+            LOG.info(String.format("id: %d\nsize: %d\neta: %d\nmin_cpu: %.4f", c.getId(), c.getMachines().size(), c.getCurrentETA(), mincpu));
         }
         coalitionClient.sendCoalition(c);
     }
