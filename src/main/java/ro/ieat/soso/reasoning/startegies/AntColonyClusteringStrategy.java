@@ -111,7 +111,14 @@ public class AntColonyClusteringStrategy {
                     int i = 0;
                     if(processed == 0) {
                         for (i = 0; i < clusters.get(label).size(); i++) {
-                            machineList.add(clusters.get(label).get(i).data);
+
+                            boolean contains = false;
+                            for(Machine m : machineList){
+                                if(m.getId().equals(clusters.get(label).get(i).data.getId()))
+                                    contains = true;
+                            }
+                            if(!contains)
+                                machineList.add(clusters.get(label).get(i).data);
                         }
                     }
                     int first = i;
