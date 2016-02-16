@@ -120,6 +120,8 @@ public class AntColonyClusteringStrategy {
                     for(int j = 0; j < clusters.get(0L).size() && machineList.size() < label; j++) {
                         //add machine to coalition if cpu is at least as the first one's
                         for(int k = 0; k < first; k++) {
+                            if(clusters.get(0L).get(j).data.getId().equals(machineList.get(k).getId()))
+                                continue;
                             if (clusters.get(0L).get(j).data.getCpu() >= machineList.get(k).getCpu()) {
                                 machineList.add(clusters.get(0L).remove(j).data);
                                 --j;

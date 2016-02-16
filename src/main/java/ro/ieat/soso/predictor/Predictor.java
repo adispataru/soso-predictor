@@ -236,7 +236,6 @@ public  class Predictor {
         for(String logicJobName : logicJobNames){
             List<Job> jobs = all.stream().filter(j -> j.getLogicJobName().equals(logicJobName))
                     .collect(Collectors.toList());
-            LOG.info("Jobs to compute: " + jobs.size());
             JobDuration duration = computeJobDuration(jobs);
             if(duration != null) {
                 duration.setLogicJobName(logicJobName);
