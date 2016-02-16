@@ -225,7 +225,7 @@ public class FineTuner {
                     .collect(Collectors.toList());
 
 //            LOG.info("Done in " + (System.currentTimeMillis() - filterTime) + " s.");
-//            LOG.info("Usage size: rb-tree/random" + usageList.size() + " / " + usageListRandom.size());
+            LOG.info("Usage size: rb-tree/random" + usageList.size() + " / " + usageListRandom.size());
 //            List<TaskUsage> usageWithoutScheduled = usageList.stream().filter(t -> !jobListContainsId(jobList, t.getId()))
 //                    .collect(Collectors.toList());
 
