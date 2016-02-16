@@ -210,6 +210,7 @@ public class FineTuner {
             scheduledTasksRandom += j.getTaskMachineMapping().size();
         }
 
+        int tasksAssigned = 0;
         for(Machine m : machineRepository.findAll()){
 
 
@@ -219,6 +220,7 @@ public class FineTuner {
                             isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobs, "rb-tree"))
                     .collect(Collectors.toList());
 
+            tasksAssigned += usageList.size();
 
             List<TaskUsage> usageListRandom = allTaskUsageList.stream().filter(t ->
                     (isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobsRandom, "random")))
@@ -298,6 +300,7 @@ public class FineTuner {
                 logOvercommit(LOG, i);
             }
         }
+        LOG.info("Tasks found/ Tasks assigned: " + allscheduledJobs.size() + "/" + tasksAssigned);
 
 
         long computeMeasurementTime = System.currentTimeMillis();
