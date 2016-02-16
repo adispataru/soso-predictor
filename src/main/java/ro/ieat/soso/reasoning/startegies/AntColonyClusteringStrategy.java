@@ -111,7 +111,7 @@ public class AntColonyClusteringStrategy {
                     result.add(c);;
                     processed = i;
                 }
-                while(processed < label){
+                if(processed < size){
                     Coalition c = new Coalition();
                     c.setId(0);
                     c.setConfidenceLevel(1.0);
