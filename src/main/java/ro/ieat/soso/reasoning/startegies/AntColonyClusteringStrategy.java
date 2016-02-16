@@ -213,22 +213,21 @@ public class AntColonyClusteringStrategy {
     private void applyRejectRules(Ant firstAnt, Ant secondAnt, Map<Long, List<Ant>> clusters) {
         if(!firstAnt.label.equals(0L) && secondAnt.label.equals(firstAnt.label)){
             if(firstAnt.mPlus < secondAnt.mPlus){
-                firstAnt.mPlus = .0;
-                firstAnt.m = .0;
-                clusters.get(firstAnt.label).remove(firstAnt);
-                firstAnt.label = 0L;
-                secondAnt.m = increase(secondAnt.m);
-                secondAnt.mPlus = decrease(secondAnt.mPlus);
+                moveAnt(firstAnt, secondAnt, clusters);
             }
             else{
-                secondAnt.mPlus = .0;
-                secondAnt.m = .0;
-                clusters.get(secondAnt.label).remove(secondAnt);
-                secondAnt.label = 0L;
-                firstAnt.m = increase(firstAnt.m);
-                firstAnt.mPlus = decrease(firstAnt.mPlus);
+                moveAnt(secondAnt, firstAnt, clusters);
             }
         }
+    }
+
+    private void moveAnt(Ant firstAnt, Ant secondAnt, Map<Long, List<Ant>> clusters) {
+        clusters.get(firstAnt.label).remove(firstAnt);
+        firstAnt.mPlus = .0;
+        firstAnt.m = .0;
+        firstAnt.label = 0L;
+        secondAnt.m = increase(secondAnt.m);
+        secondAnt.mPlus = decrease(secondAnt.mPlus);
     }
 
     private void applyAcceptRules(Ant firstAnt, Ant secondAnt, Map<Long, List<Ant>> clusters) {
