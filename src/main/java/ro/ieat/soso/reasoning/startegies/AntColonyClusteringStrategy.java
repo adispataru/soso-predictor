@@ -118,20 +118,20 @@ public class AntColonyClusteringStrategy {
                     List<Machine> machineList = new ArrayList<>();
                     LOG.severe("Processed label size: " + processed + " " + label + " " + size);
                     int i = 0;
-                    if(processed == 0) {
-                        for (i = 0; i < clusters.get(label).size(); i++) {
 
-                            boolean contains = false;
-                            for(Machine m : machineList){
-                                if(m.getId().equals(clusters.get(label).get(i).data.getId())) {
-                                    contains = true;
-                                    break;
-                                }
+                    for (i = 0; i < clusters.get(label).size(); i++) {
+
+                        boolean contains = false;
+                        for(Machine m : machineList){
+                            if(m.getId().equals(clusters.get(label).get(i).data.getId())) {
+                                contains = true;
+                                break;
                             }
-                            if(!contains)
-                                machineList.add(clusters.get(label).get(i).data);
                         }
+                        if(!contains)
+                            machineList.add(clusters.get(label).get(i).data);
                     }
+
                     int first = machineList.size();
                     //add machines 'till cluster is full
                     for(int j = 0; j < clusters.get(0L).size() && machineList.size() < label; j++) {

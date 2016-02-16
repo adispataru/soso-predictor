@@ -140,9 +140,13 @@ public class FineTuner {
                 totalTasks += j.getTaskHistory().size();
         }
 
-
-        List<ScheduledJob> scheduledJobs = scheduledRepository.findByScheduleType("rb-tree");
-        List<ScheduledJob> scheduledJobsRandom = scheduledRepository.findByScheduleType("random");
+        final Long finalTime = time;
+        List<ScheduledJob> scheduledJobs = scheduledRepository.findByScheduleType("rb-tree").stream().filter(s ->
+                s.getTimeToStart() > (finalTime - Configuration.STEP *Configuration.TIME_DIVISOR))
+                .collect(Collectors.toList());
+        List<ScheduledJob> scheduledJobsRandom = scheduledRepository.findByScheduleType("random").stream().filter(s ->
+                s.getTimeToStart() > (finalTime - Configuration.STEP *Configuration.TIME_DIVISOR))
+                .collect(Collectors.toList());
         LOG.severe("Scheduled jobs:\nrandom: " + scheduledJobsRandom.size() + "\nrb-tree: " + scheduledJobs.size());
 
 //        scheduledRepository.delete(scheduledJobs);
@@ -171,7 +175,7 @@ public class FineTuner {
 
         for(Machine m : machineRepository.findAll()){
 
-            final Long finalTime = time;
+
             List<TaskUsage> usageList = allTaskUsageList.stream().filter(t ->
                     (isJobScheduled(finalTime, t.getJobId(), scheduledJobs) &&
                             isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobs)) ||
