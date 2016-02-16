@@ -73,25 +73,25 @@ public class FineTuner {
 
 
 
-    public boolean isTaskScheduledOnMachine(long jobId, Long taskIndex, Long machineId,
+    public boolean isTaskScheduledOnMachine(long jobId, Long taskIndex, Long taskMachineId, Long machineId,
                                             List<ScheduledJob> list, String type) {
         if(type.equals("rb-tree")) {
             if (!scheduledJobMap.containsKey(list.get(0).getJobId())) {
                 list.forEach(s -> scheduledJobMap.put(s.getJobId(), s));
             }
-            return isTaskScheduled(jobId, taskIndex, machineId, scheduledJobMap);
+            return isTaskScheduled(jobId, taskIndex, taskMachineId, machineId, scheduledJobMap);
         }else if (type.equals("random")){
             if (!scheduledJobMapRandom.containsKey(list.get(0).getJobId())) {
                 list.forEach(s -> scheduledJobMapRandom.put(s.getJobId(), s));
             }
-            return isTaskScheduled(jobId, taskIndex, machineId, scheduledJobMapRandom);
+            return isTaskScheduled(jobId, taskIndex, taskMachineId, machineId, scheduledJobMapRandom);
         }
 
         return false;
 
     }
 
-    private boolean isTaskScheduled(long jobId, Long taskIndex, Long machineId, Map<Long, ScheduledJob> scheduledJobMap) {
+    private boolean isTaskScheduled(long jobId, Long taskIndex, Long taskMachineId, Long machineId, Map<Long, ScheduledJob> scheduledJobMap) {
         ScheduledJob scheduledJob = scheduledJobMap.get(jobId);
         if(scheduledJob != null) {
             return scheduledJob.getTaskMachineMapping().get(taskIndex).equals(machineId);
@@ -99,7 +99,7 @@ public class FineTuner {
         else{
             Job j = preScheduledJobs.get(jobId);
             if(j != null){
-                return j.getTaskHistory().get(taskIndex).getMachineId() == machineId;
+                return  taskMachineId == machineId;
             }
         }
         return false;
@@ -216,12 +216,12 @@ public class FineTuner {
 //            LOG.info("Computing usage");
 //            long filterTime = System.currentTimeMillis();
             List<TaskUsage> usageList = allTaskUsageList.stream().filter(t ->
-                            isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobs, "rb-tree"))
+                            isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobs, "rb-tree"))
                     .collect(Collectors.toList());
 
 
             List<TaskUsage> usageListRandom = allTaskUsageList.stream().filter(t ->
-                    (isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobsRandom, "random")))
+                    (isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobsRandom, "random")))
                     .collect(Collectors.toList());
 
 //            LOG.info("Done in " + (System.currentTimeMillis() - filterTime) + " s.");
