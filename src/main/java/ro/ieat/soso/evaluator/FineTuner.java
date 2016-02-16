@@ -177,16 +177,12 @@ public class FineTuner {
 
 
             List<TaskUsage> usageList = allTaskUsageList.stream().filter(t ->
-                    (isJobScheduled(finalTime, t.getJobId(), scheduledJobs) &&
-                            isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobs)) ||
-                            t.getMachineId().equals(m.getId()))
+                            isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobs))
                     .collect(Collectors.toList());
 
 
             List<TaskUsage> usageListRandom = allTaskUsageList.stream().filter(t ->
-                    (isJobScheduled(finalTime, t.getJobId(), scheduledJobsRandom) &&
-                            isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobsRandom)) ||
-                            t.getMachineId().equals(m.getId()))
+                    (isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), m.getId(), scheduledJobsRandom)))
                     .collect(Collectors.toList());
 
 //            List<TaskUsage> usageWithoutScheduled = usageList.stream().filter(t -> !jobListContainsId(jobList, t.getId()))
