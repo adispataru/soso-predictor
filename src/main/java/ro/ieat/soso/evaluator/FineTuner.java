@@ -95,13 +95,11 @@ public class FineTuner {
     private boolean isTaskScheduled(Long jobId, Long taskIndex, Long taskMachineId, Long machineId, Map<Long, ScheduledJob> scheduledJobMap) {
         ScheduledJob scheduledJob = scheduledJobMap.get(jobId);
         if(scheduledJob != null) {
-            LOG.info("scheduled");
             return scheduledJob.getTaskMachineMapping().get(taskIndex).equals(machineId);
         }
         else{
             Job j = preScheduledJobs.get(jobId);
             if(j != null){
-                LOG.info("prescheduled");
                 return  taskMachineId.equals(machineId);
             }
         }
@@ -185,7 +183,7 @@ public class FineTuner {
 
         if(preScheduledJobs == null){
             preScheduledJobs = new TreeMap<>();
-            jobRepository.findBySubmitTimeBetween(0L, App.jobSendingTime * Configuration.TIME_DIVISOR).forEach(
+            jobRepository.findBySubmitTimeBetween(-1L, App.jobSendingTime * Configuration.TIME_DIVISOR).forEach(
                     j -> preScheduledJobs.put(j.getJobId(), j)
             );
             LOG.info("Prescheduled jobs = " + preScheduledJobs.size());
