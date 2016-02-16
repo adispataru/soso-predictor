@@ -165,7 +165,12 @@ public class AntColonyClusteringStrategy {
             secondAnt.meetingCounter ++;
             Double similarity = similarityMap.get(first).get(second);
             if(similarity == null){
-                similarity = .0;
+                if(similarityMap.get(second).get(first) != null){
+                    similarity = similarityMap.get(second).get(first);
+                }else {
+                    similarity = .0;
+                    LOG.severe("Similarity not found. Size, first, second: " + similarityMap.size() + ", " + first + ", " + second);
+                }
             }
             if(similarity > firstAnt.threshold && similarity > secondAnt.threshold){
                 applyAcceptRules(firstAnt, secondAnt, clusters);
