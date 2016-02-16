@@ -50,6 +50,7 @@ public class FineTuner {
     private Map<Long, ScheduledJob> scheduledJobMap = new TreeMap<>();
     private Map<Long, ScheduledJob> scheduledJobMapRandom = new TreeMap<>();
     Map<Long, Job> preScheduledJobs = null;
+    Logger LOG = Logger.getLogger("FineTuner");
 
     RestTemplate template = new RestTemplate();
     private static final String testOutputPath = "./output/results/";
@@ -94,11 +95,13 @@ public class FineTuner {
     private boolean isTaskScheduled(Long jobId, Long taskIndex, Long taskMachineId, Long machineId, Map<Long, ScheduledJob> scheduledJobMap) {
         ScheduledJob scheduledJob = scheduledJobMap.get(jobId);
         if(scheduledJob != null) {
+            LOG.info("scheduled");
             return scheduledJob.getTaskMachineMapping().get(taskIndex).equals(machineId);
         }
         else{
             Job j = preScheduledJobs.get(jobId);
             if(j != null){
+                LOG.info("prescheduled");
                 return  taskMachineId.equals(machineId);
             }
         }
@@ -135,7 +138,6 @@ public class FineTuner {
 
         long lowTime = (time - Configuration.STEP) * Configuration.TIME_DIVISOR;
         time *= Configuration.TIME_DIVISOR;
-        Logger LOG = Logger.getLogger("FineTuner");
         List<TaskUsage> allTaskUsageList = taskUsageMappingRepository.
                 findByStartTimeGreaterThanAndEndTimeLessThan(lowTime - 1, time + 1);
         LOG.info("This window tasks number: " + allTaskUsageList.size());
