@@ -143,8 +143,8 @@ public class FineTuner {
         List<ScheduledJob> scheduledJobsRandom = scheduledRepository.findByScheduleType("random");
         LOG.severe("Scheduled jobs:\nrandom: " + scheduledJobsRandom.size() + "\nrb-tree: " + scheduledJobs.size());
 
-        scheduledRepository.delete(scheduledJobs);
-        scheduledRepository.delete(scheduledJobsRandom);
+//        scheduledRepository.delete(scheduledJobs);
+//        scheduledRepository.delete(scheduledJobsRandom);
         List<Long> latenessList = new ArrayList<>();
         List<Long> latenessListRandom = new ArrayList<>();
         for(ScheduledJob j : scheduledJobs){
@@ -183,21 +183,21 @@ public class FineTuner {
                             t.getMachineId().equals(m.getId()))
                     .collect(Collectors.toList());
 
-            List<TaskUsage> usageWithoutScheduled = usageList.stream().filter(t -> !jobListContainsId(jobList, t.getId()))
-                    .collect(Collectors.toList());
+//            List<TaskUsage> usageWithoutScheduled = usageList.stream().filter(t -> !jobListContainsId(jobList, t.getId()))
+//                    .collect(Collectors.toList());
 
 
 
 
             TaskUsage machineLoad = TaskUsageCombiner.
                     combineTaskUsageList(usageList, lowTime, jobList, scheduledJobs, "rb-tree");
-            TaskUsage machineLoadWithoutCurrent = TaskUsageCombiner.
-                    combineTaskUsageList(usageWithoutScheduled, lowTime, jobList, scheduledJobs, "rb-tree");
+//            TaskUsage machineLoadWithoutCurrent = TaskUsageCombiner.
+//                    combineTaskUsageList(usageWithoutScheduled, lowTime, jobList, scheduledJobs, "rb-tree");
 
             TaskUsage machineLoadRandom = TaskUsageCombiner.
-                    combineTaskUsageList(usageListRandom, lowTime, jobList, scheduledJobs, "random");
-            TaskUsage machineLoadWithoutCurrentRandom = TaskUsageCombiner.
-                    combineTaskUsageList(usageWithoutScheduled, lowTime, jobList, scheduledJobs, "random");
+                    combineTaskUsageList(usageListRandom, lowTime, jobList, scheduledJobsRandom, "random");
+//            TaskUsage machineLoadWithoutCurrentRandom = TaskUsageCombiner.
+//                    combineTaskUsageList(usageWithoutScheduled, lowTime, jobList, scheduledJobs, "random");
 
             TaskUsage machineUsage = new TaskUsage();
             machineUsage.addTaskUsage(machineLoad);
@@ -270,24 +270,24 @@ public class FineTuner {
         long idleCoalitions = 0;
         long idleCoalitionsRandom = 0;
         List<Coalition> coalitions = coalitionRepository.findAll();
-        for(Coalition c : coalitions){
-            long totalIdle = 0;
-            long totalIdleRandom = 0;
-            for(Machine machineId : c.getMachines()){
-                if(loadMap.get(machineId.getId()).getCpu() < IDLE_THRESHOLD)
-                    totalIdle++;
-                if(loadMapRandom.get(machineId.getId()).getCpu() < IDLE_THRESHOLD)
-                    totalIdleRandom++;
-            }
-            if(totalIdle == c.getMachines().size())
-                idleCoalitions++;
-            if(totalIdleRandom == c.getMachines().size())
-                idleCoalitionsRandom++;
-        }
+//        for(Coalition c : coalitions){
+//            long totalIdle = 0;
+//            long totalIdleRandom = 0;
+//            for(Machine machineId : c.getMachines()){
+//                if(loadMap.get(machineId.getId()).getCpu() < IDLE_THRESHOLD)
+//                    totalIdle++;
+//                if(loadMapRandom.get(machineId.getId()).getCpu() < IDLE_THRESHOLD)
+//                    totalIdleRandom++;
+//            }
+//            if(totalIdle == c.getMachines().size())
+//                idleCoalitions++;
+//            if(totalIdleRandom == c.getMachines().size())
+//                idleCoalitionsRandom++;
+//        }
 
-        LOG.info("Writing idle coalitions");
-        writeIdleCoalition(idleCoalitions, coalitions.size(), time, "rb-tree");
-        writeIdleCoalition(idleCoalitionsRandom, coalitions.size(), time, "random");
+//        LOG.info("Writing idle coalitions");
+//        writeIdleCoalition(idleCoalitions, coalitions.size(), time, "rb-tree");
+//        writeIdleCoalition(idleCoalitionsRandom, coalitions.size(), time, "random");
         writeLateness(latenessList, latenessListRandom, time);
 
 

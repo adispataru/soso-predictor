@@ -225,13 +225,6 @@ public class JobRequester {
 
                 //LOG.info("For job " + j.getJobId() + " status is " + j.getStatus() + " at time " + j.getSubmitTime());
                 total += j.getTaskHistory().size();
-                Double maxCpu = Double.MIN_VALUE;
-                for(TaskHistory th : j.getTaskHistory().values()){
-                    LOG.info("Requested CPU: " + th.getRequestedCPU());
-                    if(maxCpu < th.getRequestedCPU())
-                        maxCpu = th.getRequestedCPU();
-                }
-                LOG.info("Max requested CPU: " + maxCpu);
 
                 if (j.getStatus() != null) {
                     sent += j.getTaskHistory().size();
