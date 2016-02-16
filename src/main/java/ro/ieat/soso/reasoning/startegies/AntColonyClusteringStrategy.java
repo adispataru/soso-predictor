@@ -117,10 +117,11 @@ public class AntColonyClusteringStrategy {
                     }
                     //add machines 'till cluster is full
                     while (machineList.size() < label && clusters.get(0L).size() > 0){
-                        for(Ant a : clusters.get(0L)) {
+                        for(int j = 0; j < clusters.get(0L).size(); j++) {
                             //add machine to coalition if cpu is at least as the first one's
-                            if(a.data.getCpu() >= machineList.get(0).getCpu()) {
-                                machineList.add(clusters.get(0L).remove(0).data);
+                            if(clusters.get(0L).get(j).data.getCpu() >= machineList.get(0).getCpu()) {
+                                machineList.add(clusters.get(0L).remove(j).data);
+                                --j;
                                 i++;
                             }
                         }
