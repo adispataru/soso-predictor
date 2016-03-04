@@ -59,8 +59,7 @@ public class JobRequester {
 
     @Autowired
     ScheduledRepository scheduledRepository;
-    String jobRequestTargetUrl1 = "http://localhost:8090/job";
-    String jobRequestTargetUrl2 = "http://localhost:8091/job";
+    String[] jobRequestTargetUrls = {"http://localhost:8090/job", "http://localhost:8091/job", "http://localhost:8092/job"};
 
 
 
@@ -200,8 +199,10 @@ public class JobRequester {
         time = initEnd + Configuration.STEP;
         boolean updateCoalition = false;
         while(time <= endTime) {
-            long notScheduledJobs = 0;
-            long notScheduledJobsRandom = 0;
+            Map<String, Long> notScheduledJobs = new TreeMap<>();
+            notScheduledJobs.put("rb-tree", 0L);
+            notScheduledJobs.put("linear", 0L);
+            notScheduledJobs.put("random", 0L);
             //TODO This will function again during reorganization
 //            if(updateCoalition){
 //                LOG.info("Predicting machine usage...");
@@ -230,34 +231,28 @@ public class JobRequester {
                     sent += j.getTaskHistory().size();
 
                     //Send job request to main matcher
-                    ScheduledJob scheduledJob = coalitionClient.sendJobRequest(new Job(j, false), jobRequestTargetUrl1);
-                    if (scheduledJob != null) {
-                        LOG.info("Scheduled job " + scheduledJob.getJobId());
-                        scheduledJob.setId(scheduledId++);
-                        scheduledJob.setScheduleType("rb-tree");
-                        scheduledRepository.save(scheduledJob);
-                    } else {
-                        notScheduledJobs += j.getTaskHistory().size();
-                        LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
+
+                    int i = 0;
+                    for(String type : notScheduledJobs.keySet()) {
+                        ScheduledJob scheduledJob = coalitionClient.sendJobRequest(new Job(j, false), jobRequestTargetUrls[i]);
+                        if (scheduledJob != null) {
+                            LOG.info("Scheduled job " + scheduledJob.getJobId());
+                            scheduledJob.setId(scheduledId++);
+                            scheduledJob.setScheduleType("rb-tree");
+                            scheduledRepository.save(scheduledJob);
+                        } else {
+                            notScheduledJobs.put(type, notScheduledJobs.get(type) + 1);
+                            LOG.severe(String.format("Job %d cannot be scheduled by %s", j.getJobId(), type));
+                        }
+                        i++;
                     }
 
-                    //Send job request to random matcher
-                    ScheduledJob scheduledJob2 = coalitionClient.sendJobRequest(new Job(j, false), jobRequestTargetUrl2);
-                    if (scheduledJob2 != null) {
-                        LOG.info("Scheduled job " + scheduledJob2.getJobId());
-                        scheduledJob2.setId(scheduledId++);
-                        scheduledJob2.setScheduleType("random");
-                        scheduledRepository.save(scheduledJob2);
-                    } else {
-                        notScheduledJobsRandom += j.getTaskHistory().size();
-                        LOG.severe(String.format("Job %d cannot be scheduled", j.getJobId()));
-                    }
 
                 } else {
                     LOG.info("Not sending " + j.getJobId() + " because status is " + j.getStatus() + " at time " + j.getSubmitTime());
                 }
             }
-            writeJobSchedulingErrors(notScheduledJobs, notScheduledJobsRandom, sent, total, time);
+            writeJobSchedulingErrors(notScheduledJobs, sent, total, time);
 
 
             initEnd = time;
@@ -267,8 +262,9 @@ public class JobRequester {
                 Job endJob = new Job();
                 endJob.setJobId(-1);
                 LOG.info("Sending end job");
-                coalitionClient.sendJobRequest(endJob, jobRequestTargetUrl1);
-                coalitionClient.sendJobRequest(endJob, jobRequestTargetUrl2);
+                for(String jobUrl : jobRequestTargetUrls) {
+                    coalitionClient.sendJobRequest(endJob, jobUrl);
+                }
             }
             template.put("http://localhost:8088/finetuner/" + initEnd, 1);
             LOG.info("Predicting job runtime");
@@ -289,10 +285,14 @@ public class JobRequester {
 
     }
 
-    public void writeJobSchedulingErrors(long notScheduledJobs, long notScheduledJobsRandom, long sent, long  total, long time){
+    public void writeJobSchedulingErrors(Map<String, Long> notScheduledJobs, long sent, long  total, long time){
         try {
             FileWriter fileWriter = new FileWriter("./output/results/schedule/not_planned_errors", true);
-            fileWriter.write(String.format("%d %d %d %d %d\n", time, notScheduledJobs, notScheduledJobsRandom, sent, total));
+            fileWriter.write(time + " ");
+            for (String s : notScheduledJobs.keySet()) {
+                fileWriter.write(notScheduledJobs.get(s) + " ");
+            }
+            fileWriter.write(sent + " " + total + "\n");
             fileWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
