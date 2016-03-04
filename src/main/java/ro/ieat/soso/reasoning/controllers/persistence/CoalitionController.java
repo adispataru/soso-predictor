@@ -18,8 +18,8 @@ import ro.ieat.soso.persistence.CoalitionRepository;
 public class CoalitionController {
     @Autowired
     CoalitionRepository coalitionRepository;
-    public static String coalitionTargetUrl = "http://localhost:8090/coalition";
-    public static String coalitionTargetUrl2 = "http://localhost:8091/coalition";
+    public static String[] coalitionTargetUrls = {"http://localhost:8090/coalition",
+            "http://localhost:8091/coalition", "http://localhost:8092/coalition"};
 
     @RequestMapping(method = RequestMethod.POST, path = "/coalitions", consumes = "application/json")
     public Coalition updateCoalition(@RequestBody Coalition c){
@@ -29,8 +29,9 @@ public class CoalitionController {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        restTemplate.postForObject(coalitionTargetUrl, c, Coalition.class, headers);
-        restTemplate.postForObject(coalitionTargetUrl2, c, Coalition.class, headers);
+        for(String coalitionTargetUrl : coalitionTargetUrls) {
+            restTemplate.postForObject(coalitionTargetUrl, c, Coalition.class, headers);
+        }
         return c;
     }
 
