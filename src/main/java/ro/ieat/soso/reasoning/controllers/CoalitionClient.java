@@ -50,8 +50,10 @@ public class CoalitionClient{
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         for(JobDuration jd : jobs) {
+            //TODO A for over the clients of the platform
             restTemplate.postForEntity("http://localhost:8090/jobDuration", jd, Object.class, headers);
             restTemplate.postForObject("http://localhost:8091/jobDuration", jd, Object.class, headers);
+            restTemplate.postForObject("http://localhost:8092/jobDuration", jd, Object.class, headers);
         }
     }
 
