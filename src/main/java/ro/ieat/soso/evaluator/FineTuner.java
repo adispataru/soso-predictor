@@ -19,10 +19,7 @@ import ro.ieat.soso.util.TaskUsageCombiner;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -47,8 +44,7 @@ public class FineTuner {
     ScheduledRepository scheduledRepository;
     private static final Double THRESHOLD = 1.0;
     private static final Double IDLE_THRESHOLD = 0.05;
-    private Map<Long, ScheduledJob> scheduledJobMap = new TreeMap<>();
-    private Map<Long, ScheduledJob> scheduledJobMapRandom = new TreeMap<>();
+    private Map<String, Map<Long, ScheduledJob>> scheduledJobMap = new TreeMap<>();
     Map<Long, Job> preScheduledJobs = null;
     Logger LOG = Logger.getLogger("FineTuner");
 
@@ -76,19 +72,15 @@ public class FineTuner {
 
     public boolean isTaskScheduledOnMachine(Long jobId, Long taskIndex, Long taskMachineId, Long machineId,
                                             List<ScheduledJob> list, String type) {
-        if(type.equals("rb-tree")) {
-            if (!scheduledJobMap.containsKey(list.get(0).getJobId())) {
-                list.forEach(s -> scheduledJobMap.put(s.getJobId(), s));
-            }
-            return isTaskScheduled(jobId, taskIndex, taskMachineId, machineId, scheduledJobMap);
-        }else if (type.equals("random")){
-            if (!scheduledJobMapRandom.containsKey(list.get(0).getJobId())) {
-                list.forEach(s -> scheduledJobMapRandom.put(s.getJobId(), s));
-            }
-            return isTaskScheduled(jobId, taskIndex, taskMachineId, machineId, scheduledJobMapRandom);
+        if(scheduledJobMap.get(type) == null) {
+            scheduledJobMap.put(type, new TreeMap<>());
         }
 
-        return false;
+            if (!scheduledJobMap.get(type).containsKey(list.get(0).getJobId())) {
+                list.forEach(s -> scheduledJobMap.get(type).put(s.getJobId(), s));
+            }
+            return isTaskScheduled(jobId, taskIndex, taskMachineId, machineId, scheduledJobMap.get(type));
+
 
     }
 
@@ -140,14 +132,13 @@ public class FineTuner {
                 findByStartTimeGreaterThanAndEndTimeLessThan(lowTime - 1, time + 1);
         LOG.info("This window tasks number: " + allTaskUsageList.size());
 
-        Map<Long, TaskUsage> loadMap = new TreeMap<>();
+        Map<String, Map<Long, TaskUsage>> loadMap = new TreeMap<>();
         Map<Long, TaskUsage> loadMapRandom = new TreeMap<>();
 
 //        Map<Long, UsageError> usageErrorMap = new TreeMap<>();
 //        Map<Long, UsageError> usageErrorMapRandom = new TreeMap<>();
 
-        Long schedulingErrors = 0L;
-        Long schedulingErrorsRandom = 0L;
+        Long[] schedulingErrors = {0L, 0L, 0L};
         List<Job> jobList = jobRepository.findBySubmitTimeBetween(lowTime-1, time+1);
 //        List<JobDuration> jobDurations = jobDurationRepository.findBySubmitTimeBetween(lowTime, time);
 //        List<Long> runtimeErrors = new ArrayList<>();
@@ -161,8 +152,8 @@ public class FineTuner {
 //            }
 //        }
 
-        long scheduledTasks = 0;
-        long scheduledTasksRandom = 0;
+        String[] types = {"rb-tree, linear, random"};
+
         long totalTasks = 0;
 
         for(Job j : jobList){
@@ -171,15 +162,16 @@ public class FineTuner {
         }
 
         final Long finalTime = time;
-        List<ScheduledJob> allscheduledJobs = scheduledRepository.findByScheduleType("rb-tree");
-        List<ScheduledJob> allscheduledJobsRandom = scheduledRepository.findByScheduleType("random");
-        List<ScheduledJob> scheduledJobs = allscheduledJobs.stream().filter(s ->
-                s.getTimeToStart() > (finalTime - Configuration.STEP *Configuration.TIME_DIVISOR))
-                .collect(Collectors.toList());
-        List<ScheduledJob> scheduledJobsRandom = allscheduledJobsRandom.stream().filter(s ->
-                s.getTimeToStart() > (finalTime - Configuration.STEP *Configuration.TIME_DIVISOR))
-                .collect(Collectors.toList());
-        LOG.severe("Scheduled jobs:\nrandom: " + scheduledJobsRandom.size() + "\nrb-tree: " + scheduledJobs.size());
+        Map<String, List<ScheduledJob>> scheduledJobs = new TreeMap<>();
+        for(String type : types){
+            scheduledJobs.put(type,
+                    scheduledRepository.findByScheduleType(type).stream().filter(s ->
+                            s.getTimeToStart() > (finalTime - Configuration.STEP *Configuration.TIME_DIVISOR))
+                            .collect(Collectors.toList()));
+            LOG.severe(String.format("%s Scheduled Jobs: %d \n", type, scheduledJobs.get(type).size()));
+        }
+
+
 
         if(preScheduledJobs == null){
             preScheduledJobs = new TreeMap<>();
@@ -191,117 +183,77 @@ public class FineTuner {
 
 //        scheduledRepository.delete(scheduledJobs);
 //        scheduledRepository.delete(scheduledJobsRandom);
-        List<Long> latenessList = new ArrayList<>();
-        List<Long> latenessListRandom = new ArrayList<>();
-        for(ScheduledJob j : scheduledJobs){
-            long real = getJobScheduleTime(jobList, j.getJobId());
-            if(real == 0)
-                continue;
-
-            latenessList.add(j.getTimeToStart() - real);
-            scheduledTasks += j.getTaskMachineMapping().size();
-
+        Map<String, List<Long>> latenessMap = new TreeMap<>();
+        Map<String, Long> scheduledTasks = new TreeMap<>();
+        for(String type : types){
+            latenessMap.put(type, new ArrayList<>());
+            scheduledTasks.put(type, 0L);
+            loadMap.put(type, new TreeMap<>());
         }
 
-        for(ScheduledJob j : scheduledJobsRandom){
-            long real = getJobScheduleTime(jobList, j.getJobId());
-            if(real == 0)
-                continue;
-            latenessListRandom.add(j.getTimeToStart() - real);
-            scheduledTasksRandom += j.getTaskMachineMapping().size();
+
+        for(String type : types) {
+            for (ScheduledJob j : scheduledJobs.get(type)) {
+                long real = getJobScheduleTime(jobList, j.getJobId());
+                if (real == 0)
+                    continue;
+
+                latenessMap.get(type).add(j.getTimeToStart() - real);
+                Long l = scheduledTasks.get(type + j.getTaskMachineMapping().size());
+                scheduledTasks.put(type, l);
+
+            }
         }
 
-        int tasksAssigned = 0;
         for(Machine m : machineRepository.findAll()){
 
 
 //            LOG.info("Computing usage");
 //            long filterTime = System.currentTimeMillis();
-            List<TaskUsage> usageList = allTaskUsageList.stream().filter(t ->
-                            isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobs, "rb-tree"))
-                    .collect(Collectors.toList());
-
-            tasksAssigned += usageList.size();
-
-            List<TaskUsage> usageListRandom = allTaskUsageList.stream().filter(t ->
-                    (isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobsRandom, "random")))
-                    .collect(Collectors.toList());
-
+            Map<String, List<TaskUsage>> usageMap = new TreeMap<>();
+            Map<String, TaskUsage> machineLoad = new TreeMap<>();
+            Map<String, TaskUsage> machineUsage = new TreeMap<>();
+            int typeNo = 0;
+            for(String type : types) {
+                usageMap.put(type, allTaskUsageList.stream().filter(t ->
+                        isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobs.get(type), type))
+                        .collect(Collectors.toList()));
+                 machineLoad.put(type, TaskUsageCombiner.
+                        combineTaskUsageList(usageMap.get(type), lowTime, jobList, scheduledJobs.get(type), type));
+                machineUsage.put(type, new TaskUsage());
+                machineUsage.get(type).addTaskUsage(machineLoad.get(type));
 //            LOG.info("Done in " + (System.currentTimeMillis() - filterTime) + " s.");
 //            LOG.info("Usage size: rb-tree/random" + usageList.size() + " / " + usageListRandom.size());
 //            List<TaskUsage> usageWithoutScheduled = usageList.stream().filter(t -> !jobListContainsId(jobList, t.getId()))
 //                    .collect(Collectors.toList());
+                machineLoad.get(type).divideCPU(m.getCpu());
+                machineLoad.get(type).divideMemory(m.getMemory());
+                loadMap.get(type).put(m.getId(), machineLoad.get(type));
 
+                //overcommit
+                int i = usageMap.get(type).size() - 1;
+                //actually makes sense to subtract usage of task which produced error.
 
+                boolean overcommit = false;
+                while((machineUsage.get(type).getCpu() > THRESHOLD * m.getCpu() ||
+                        machineUsage.get(type).getMemory() > THRESHOLD * m.getMemory()) && i >= 0) {
+                    LOG.info(type + ":\nMachine usage" + machineUsage.get(type).getCpu() + " " + machineUsage.get(type).getMemory() +
+                            "\nMachine capacity " + m.getCpu() + " " + m.getMemory());
 
+                    machineUsage.get(type).substractTaskUsage(usageMap.get(type).get(i));
+                    schedulingErrors[typeNo]++;
 
-            TaskUsage machineLoad = TaskUsageCombiner.
-                    combineTaskUsageList(usageList, lowTime, jobList, scheduledJobs, "rb-tree");
-//            TaskUsage machineLoadWithoutCurrent = TaskUsageCombiner.
-//                    combineTaskUsageList(usageWithoutScheduled, lowTime, jobList, scheduledJobs, "rb-tree");
+                    i--;
+                    overcommit = true;
+                }
 
-            TaskUsage machineLoadRandom = TaskUsageCombiner.
-                    combineTaskUsageList(usageListRandom, lowTime, jobList, scheduledJobsRandom, "random");
-//            TaskUsage machineLoadWithoutCurrentRandom = TaskUsageCombiner.
-//                    combineTaskUsageList(usageWithoutScheduled, lowTime, jobList, scheduledJobs, "random");
-
-            TaskUsage machineUsage = new TaskUsage();
-            machineUsage.addTaskUsage(machineLoad);
-
-            TaskUsage machineUsageRandom = new TaskUsage();
-            machineUsageRandom.addTaskUsage(machineLoadRandom);
-
-            machineLoad.divideCPU(m.getCpu());
-            machineLoadRandom.divideCPU(m.getCpu());
-
-            machineLoad.divideMemory(m.getMemory());
-            machineLoadRandom.divideMemory(m.getMemory());
-
-            loadMap.put(m.getId(), machineLoad);
-            loadMapRandom.put(m.getId(), machineLoadRandom);
-
-
-//            usageErrorMap.put(m.getId(), new UsageError(machineLoadWithoutCurrent, m.getUsagePrediction()));
-//            usageErrorMapRandom.put(m.getId(), new UsageError(machineLoadWithoutCurrentRandom, m.getUsagePrediction()));
-
-            int i = usageList.size() - 1;
-            //actually makes sense to subtract usage of task which produced error.
-
-            boolean overcommit = false;
-            while((machineUsage.getCpu() > THRESHOLD * m.getCpu() ||
-                    machineUsage.getMemory() > THRESHOLD * m.getMemory()) && i >= 0) {
-                LOG.info("Machine usage" + machineUsage.getCpu() + " " + machineUsage.getMemory() +
-                        "\nMachine capacity " + m.getCpu() + " " + m.getMemory());
-
-                machineUsage.substractTaskUsage(usageList.get(i));
-                schedulingErrors++;
-
-                i--;
-                overcommit = true;
+                if(overcommit) {
+                    logOvercommit(LOG, i);
+                }
+                typeNo++;
             }
 
-            if(overcommit) {
-                logOvercommit(LOG, i);
-            }
-
-            overcommit = false;
-            i = usageListRandom.size() - 1;
-            while((machineUsageRandom.getCpu() > THRESHOLD * m.getCpu() ||
-                    machineUsageRandom.getMemory() > THRESHOLD * m.getMemory()) && i >= 0) {
-                LOG.info("Machine usage random" + machineUsageRandom.getCpu() + " " + machineUsageRandom.getMemory() +
-                        "\nMachine capacity " + m.getCpu() + " " + m.getMemory());
-
-                machineUsage.substractTaskUsage(usageListRandom.get(i));
-                schedulingErrorsRandom++;
-
-                i--;
-                overcommit = true;
-            }
-            if(overcommit) {
-                logOvercommit(LOG, i);
-            }
         }
-        LOG.info("Tasks found/ Tasks assigned: " + allscheduledJobs.size() + "/" + tasksAssigned);
 
 
         long computeMeasurementTime = System.currentTimeMillis();
@@ -309,37 +261,35 @@ public class FineTuner {
 //        LOG.info("Writing usage error.");
 //        writeUsageError(usageErrorMap, time);
 
-        LOG.info("Writing load.");
-        writeLoad(loadMap, time, "rb-tree");
-        writeLoad(loadMapRandom, time, "random");
+        int i = 0;
+        for(String type : types) {
+            LOG.info("Writing load.");
+            writeLoad(loadMap.get(type), time, "rb-tree");
 
-        LOG.info("Writing scheduling errors.");
-        writeScheduleErrors(schedulingErrors, scheduledTasks, totalTasks, time, "rb-tree");
-        writeScheduleErrors(schedulingErrorsRandom, scheduledTasksRandom, totalTasks, time, "random");
+            LOG.info("Writing scheduling errors.");
+            writeScheduleErrors(schedulingErrors[i], scheduledTasks.get(type), totalTasks, time, "rb-tree");
 
-        long idleCoalitions = 0;
-        long idleCoalitionsRandom = 0;
-        List<Coalition> coalitions = coalitionRepository.findAll();
-        for(Coalition c : coalitions){
-            long totalIdle = 0;
-            long totalIdleRandom = 0;
-            for(Machine machineId : c.getMachines()){
-                if(loadMap.get(machineId.getId()).getCpu() < IDLE_THRESHOLD)
-                    totalIdle++;
-                if(loadMapRandom.get(machineId.getId()).getCpu() < IDLE_THRESHOLD)
-                    totalIdleRandom++;
+
+            Long[] idleCoalitions = {0L, 0L, 0L};
+            List<Coalition> coalitions = coalitionRepository.findAll();
+            for (Coalition c : coalitions) {
+                Long[] totalIdle = {0L, 0L, 0L};
+
+                for (Machine machineId : c.getMachines()) {
+                    if (loadMap.get(type).get(machineId.getId()).getCpu() < IDLE_THRESHOLD)
+                        totalIdle[i]++;
+                }
+                if (totalIdle[i] == c.getMachines().size())
+                    idleCoalitions[i]++;
             }
-            if(totalIdle == c.getMachines().size())
-                idleCoalitions++;
-            if(totalIdleRandom == c.getMachines().size())
-                idleCoalitionsRandom++;
+
+
+            LOG.info("Writing idle coalitions");
+            writeIdleCoalition(idleCoalitions[i], coalitions.size(), time, "rb-tree");
+            writeLateness(latenessMap, time);
+            i++;
+
         }
-
-        LOG.info("Writing idle coalitions");
-        writeIdleCoalition(idleCoalitions, coalitions.size(), time, "rb-tree");
-        writeIdleCoalition(idleCoalitionsRandom, coalitions.size(), time, "random");
-        writeLateness(latenessList, latenessListRandom, time);
-
         LOG.info("Finished writing: " + (System.currentTimeMillis() - computeMeasurementTime) / 1000);
 
 
@@ -353,25 +303,36 @@ public class FineTuner {
         }
     }
 
-    private void writeLateness(List<Long> latenessList, List<Long> latenessListRandom, Long time) {
-        Long lateTotal = 0L;
-        for(Long l : latenessList)
-            lateTotal += l;
-        double averageRError = lateTotal * 1.0/ latenessList.size();
-        Long lateTotalRandom = 0L;
-        for(Long l : latenessListRandom)
-            lateTotalRandom += l;
-        double averageRErrorRandom = lateTotalRandom * 1.0/ latenessListRandom.size();
+    private void writeLateness(Map<String, List<Long>> latenessMap, Long time) {
+        Long[] lateTotal = {0L, 0L, 0L};
+        Double[] averageRError = {.0, .0, .0};
+        int i  = 0;
+        Set<String> types = latenessMap.keySet();
+        for(String type : types) {
+            for(Long l : latenessMap.get(type)) {
+                lateTotal[i] += l;
+            }
+            averageRError[i] = lateTotal[i] * 1.0/ latenessMap.get(type).size();
+            i++;
+        }
 
         File f = new File(testOutputPath + "lateness");
         boolean writeHeader = !f.exists();
         FileWriter fileWriter = null;
         try {
             fileWriter = new FileWriter(f, true);
-            if(writeHeader)
-                fileWriter.write("%time lateRB lateRandom totalRB totalRandom\n");
-            fileWriter.write(String.format("%d %.4f %.4f %d %d\n",
-                    time, averageRError, averageRErrorRandom, lateTotal, lateTotalRandom));
+            if(writeHeader) {
+                fileWriter.write("%time ");
+                for(String type : types) {
+                    fileWriter.write(type + "_avg " + type + "_total ");
+                }
+                fileWriter.write("\n");
+            }
+            fileWriter.write(time + " ");
+            for(i = 0; i < averageRError.length; i++) {
+                fileWriter.write(String.format("%.4f %d ", averageRError[i], lateTotal[i]));
+            }
+            fileWriter.write("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }finally {
