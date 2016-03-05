@@ -264,10 +264,10 @@ public class FineTuner {
         int i = 0;
         for(String type : types) {
             LOG.info("Writing load.");
-            writeLoad(loadMap.get(type), time, "rb-tree");
+            writeLoad(loadMap.get(type), time, type);
 
             LOG.info("Writing scheduling errors.");
-            writeScheduleErrors(schedulingErrors[i], scheduledTasks.get(type), totalTasks, time, "rb-tree");
+            writeScheduleErrors(schedulingErrors[i], scheduledTasks.get(type), totalTasks, time, type);
 
 
             Long[] idleCoalitions = {0L, 0L, 0L};
@@ -285,7 +285,7 @@ public class FineTuner {
 
 
             LOG.info("Writing idle coalitions");
-            writeIdleCoalition(idleCoalitions[i], coalitions.size(), time, "rb-tree");
+            writeIdleCoalition(idleCoalitions[i], coalitions.size(), time, type);
             writeLateness(latenessMap, time);
             i++;
 
