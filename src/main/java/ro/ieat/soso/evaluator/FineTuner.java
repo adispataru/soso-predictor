@@ -390,7 +390,7 @@ public class FineTuner {
         }
     }
 
-    private void writeLoad(Map<Long, TaskUsage> loadMap, long time, String type){
+    private void writeLoad(Map<Long, TaskUsage> loadMap, Long time, String type){
         //LOAD
         File dir = new File(testOutputPath + "load/" + type);
         if(!dir.exists())
@@ -441,7 +441,7 @@ public class FineTuner {
         }
     }
 
-    private void writeIdleCoalition(long idleCoalitions, int coalitionSize, long time, String type){
+    private void writeIdleCoalition(Long idleCoalitions, Integer coalitionSize, Long time, String type){
         //IDLE COALITIONS
         File f = new File(testOutputPath + "load/" + type + "/idle_coals");
         FileWriter fileWriter = null;
@@ -463,7 +463,7 @@ public class FineTuner {
         }
     }
 
-    private void writeScheduleErrors(Long schedulingErrors, long scheduledTasks,long totalTasks, long time, String type){
+    private void writeScheduleErrors(Long schedulingErrors, Long scheduledTasks,Long totalTasks, Long time, String type){
         File dir = new File(testOutputPath + "schedule/" + type);
         if(!dir.exists())
             dir.mkdirs();
@@ -489,7 +489,7 @@ public class FineTuner {
     }
 
 
-    private void writeJobRuntimeError(List<Long> runtimeErrors, long time) {
+    private void writeJobRuntimeError(List<Long> runtimeErrors, Long time) {
 
 
         Long runtimeError = 0L;
