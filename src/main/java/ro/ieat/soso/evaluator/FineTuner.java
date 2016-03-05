@@ -152,7 +152,7 @@ public class FineTuner {
 //            }
 //        }
 
-        String[] types = {"rb-tree, linear, random"};
+        String[] types = {"rb-tree", "linear", "random"};
 
         long totalTasks = 0;
 
