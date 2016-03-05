@@ -268,9 +268,9 @@ public class JobRequester {
                 }
             }
             template.put("http://localhost:8088/finetuner/" + initEnd, 1);
-            LOG.info("Predicting job runtime");
-            template.put("http://localhost:8088/predict/job/" + initEnd +"/" + time, 1);
-            LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
+//            LOG.info("Predicting job runtime");
+//            template.put("http://localhost:8088/predict/job/" + initEnd +"/" + time, 1);
+//            LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
             updateCoalition = true;
         }
 
