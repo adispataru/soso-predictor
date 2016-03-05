@@ -10,11 +10,11 @@ do
    mkdir "./data/$folder"
    for i in 0 1 2 3 4
    do
-        gsutil cp "$url/$folder/part-0000$i-of-00500.csv.gz" "./$folder/"
-        gsutil cp "$url/$folder/part-0000$i-of-00001.csv.gz" "./$folder/"
+        gsutil cp "$url/$folder/part-0000$i-of-00500.csv.gz" "./$folder"
+        gsutil cp "$url/$folder/part-0000$i-of-00001.csv.gz" "./$folder"
    done
-   cd folder
-   gzip -d *
+   cd "./data/$folder"
+   gzip -d *.gz
    cd ../
    # or do whatever with individual element of the array
 done
