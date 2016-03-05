@@ -238,7 +238,7 @@ public class JobRequester {
                         if (scheduledJob != null) {
                             LOG.info("Scheduled job " + scheduledJob.getJobId());
                             scheduledJob.setId(scheduledId++);
-                            scheduledJob.setScheduleType("rb-tree");
+                            scheduledJob.setScheduleType(type);
                             scheduledRepository.save(scheduledJob);
                         } else {
                             notScheduledJobs.put(type, notScheduledJobs.get(type) + 1);
