@@ -10,8 +10,8 @@ do
    mkdir "./data/$folder"
    for i in 0 1 2 3 4
    do
-        gsutil cp "$url/$folder/part-0000$i-of-00500.csv.gz" "./$folder"
-        gsutil cp "$url/$folder/part-0000$i-of-00001.csv.gz" "./$folder"
+        gsutil cp "$url/$folder/part-0000$i-of-00500.csv.gz" "./data/$folder/"
+        gsutil cp "$url/$folder/part-0000$i-of-00001.csv.gz" "./data/$folder/"
    done
    cd "./data/$folder"
    gzip -d *.gz
