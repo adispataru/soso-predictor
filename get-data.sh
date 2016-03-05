@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-base=pwd
+base=$(pwd)
 mkdir "$base/data"
 ## declare an array variable
 declare -a arr=("machine_events" "job_events" "task_events" "task_usage")
