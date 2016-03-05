@@ -60,6 +60,7 @@ public class JobRequester {
     @Autowired
     ScheduledRepository scheduledRepository;
     String[] jobRequestTargetUrls = {"http://localhost:8090/job", "http://localhost:8091/job", "http://localhost:8092/job"};
+    String[] types = {"rb-tree", "linear", "random"};
 
 
 
@@ -233,7 +234,7 @@ public class JobRequester {
                     //Send job request to main matcher
 
                     int i = 0;
-                    for(String type : notScheduledJobs.keySet()) {
+                    for(String type : types) {
                         ScheduledJob scheduledJob = coalitionClient.sendJobRequest(new Job(j, false), jobRequestTargetUrls[i]);
                         if (scheduledJob != null) {
                             LOG.info("Scheduled job " + scheduledJob.getJobId());
