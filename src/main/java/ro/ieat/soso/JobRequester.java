@@ -121,7 +121,7 @@ public class JobRequester {
                 }
 
 
-                LOG.info("Cleaning up finished jobs");
+                LOG.info("Saving and cleaning up finished jobs...");
                 Iterator<Map.Entry<Long, Job>> iterator = jobMap.entrySet().iterator();
                 while(iterator.hasNext()){
                     Job j = iterator.next().getValue();
