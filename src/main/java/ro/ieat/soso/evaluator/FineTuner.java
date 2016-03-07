@@ -199,7 +199,7 @@ public class FineTuner {
                     continue;
 
                 latenessMap.get(type).add(j.getTimeToStart() - real);
-                Long l = scheduledTasks.get(type + j.getTaskMachineMapping().size());
+                Long l = scheduledTasks.get(type) + j.getTaskMachineMapping().size();
                 scheduledTasks.put(type, l);
 
             }
@@ -219,7 +219,7 @@ public class FineTuner {
                         isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobs.get(type), type))
                         .collect(Collectors.toList()));
                  machineLoad.put(type, TaskUsageCombiner.
-                        combineTaskUsageList(usageMap.get(type), lowTime, jobList, scheduledJobs.get(type), type));
+                        combineTaskUsageList(usageMap.get(type), lowTime));
                 machineUsage.put(type, new TaskUsage());
                 machineUsage.get(type).addTaskUsage(machineLoad.get(type));
 //            LOG.info("Done in " + (System.currentTimeMillis() - filterTime) + " s.");

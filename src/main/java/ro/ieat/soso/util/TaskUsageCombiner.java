@@ -13,10 +13,9 @@ import java.util.logging.Logger;
  * This class contains logic for combining tasks on a given resource.
  */
 public class TaskUsageCombiner {
-    public static int sampleSize = 300;
+    public static int sampleSize = 30;
 
-    public static TaskUsage combineTaskUsageList(List<TaskUsage> usageList, long startTime,
-                                                 List<Job> jobs, List<ScheduledJob> scheduledJobs, String type){
+    public static TaskUsage combineTaskUsageList(List<TaskUsage> usageList, long startTime){
 
         startTime /= Configuration.TIME_DIVISOR;
         TaskUsage[] total = new TaskUsage[sampleSize];

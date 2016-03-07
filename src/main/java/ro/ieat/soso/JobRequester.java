@@ -242,7 +242,7 @@ public class JobRequester {
                             scheduledJob.setScheduleType(type);
                             scheduledRepository.save(scheduledJob);
                         } else {
-                            notScheduledJobs.put(type, notScheduledJobs.get(type) + 1);
+                            notScheduledJobs.put(type, notScheduledJobs.get(type) + j.getTaskHistory().size());
                             LOG.severe(String.format("Job %d cannot be scheduled by %s", j.getJobId(), type));
                         }
                         i++;
