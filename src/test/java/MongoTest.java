@@ -1,4 +1,4 @@
-import junit.framework.Assert;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +14,7 @@ import util.AppConfig;
 import util.TestConfig;
 
 import java.util.ArrayList;
-
+import static junit.framework.Assert.*;
 /**
  * Created by adrian on 12.01.2016.
  * To test mongo db
@@ -33,11 +33,17 @@ public class MongoTest {
         c.setLogicJobName("ala bala");
         c.setMachines(new ArrayList<Machine>());
         Machine m = new Machine(1, 0.5, 0.5);
+        Machine m2 = new Machine(2, 0.5, 0.5);
+
 
         c.getMachines().add(m);
+        c.getMachines().add(m2);
         coalitionRepository.save(c);
         Coalition c2 = coalitionRepository.findAll().get(0);
-        Assert.assertEquals(c2.getLogicJobName(), c.getLogicJobName());
+        Coalition c3 = coalitionRepository.findByMachinesId(m.getId());
+        assertEquals(c2.getLogicJobName(), c.getLogicJobName());
+        assertEquals(c3.getLogicJobName(), c.getLogicJobName());
+
 
     }
 
