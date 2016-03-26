@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import ro.ieat.soso.App;
 import ro.ieat.soso.core.coalitions.Coalition;
 import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.config.Configuration;
@@ -159,7 +160,8 @@ public class CoalitionReasoner {
 
     public List<Coalition> antColonyClustering(List<Machine> machines, long time){
         Map<Long, Long> machineMaxTaskMap = new TreeMap<>();
-        List<Job> jobList = jobRepository.findBySubmitTimeBetween(0L, time * Configuration.TIME_DIVISOR +1);
+        List<Job> jobList = jobRepository.findBySubmitTimeBetween((time - Configuration.STEP * App.historySize) *
+                Configuration.TIME_DIVISOR, time * Configuration.TIME_DIVISOR +1);
         LOG.info("JobList size: " + jobList.size());
         for(Job job : jobList){
             int size = job.getTaskHistory().size();

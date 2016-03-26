@@ -17,6 +17,7 @@ import java.util.logging.Logger;
 @EnableMongoRepositories(basePackages = "ro.ieat.soso.persistence")
 public class App {
     public static final Long initTime = 2700L;
+    public static final Long historySize = 4L;
     public static final Long jobSendingTime = initTime + Configuration.STEP;
 
     private static Logger LOG = Logger.getLogger(App.class.toString());
@@ -36,7 +37,7 @@ public class App {
         SpringApplication.run(App.class, args);
         RestTemplate restTemplate = new RestTemplate();
         restTemplate.getForObject("http://localhost:8088/app/init/600/" + Long.MAX_VALUE / Configuration.TIME_DIVISOR, String.class);
-        restTemplate.put("http://localhost:8088/app/start/" + initTime + "/9900/4" , null);
+        restTemplate.put("http://localhost:8088/app/start/" + initTime + "/9900/" +  historySize, null);
 
 
     }
