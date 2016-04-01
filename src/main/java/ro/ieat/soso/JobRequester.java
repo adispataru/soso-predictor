@@ -18,10 +18,7 @@ import ro.ieat.soso.core.mappers.MachineEventsMapper;
 import ro.ieat.soso.core.mappers.TaskEventsMapper;
 import ro.ieat.soso.core.mappers.TaskUsageMapper;
 import ro.ieat.soso.core.prediction.PredictionMethod;
-import ro.ieat.soso.persistence.JobRepository;
-import ro.ieat.soso.persistence.MachineRepository;
-import ro.ieat.soso.persistence.ScheduledRepository;
-import ro.ieat.soso.persistence.TaskUsageMappingRepository;
+import ro.ieat.soso.persistence.*;
 import ro.ieat.soso.predictor.prediction.PredictionFactory;
 import ro.ieat.soso.predictor.prediction.duration.PessimisticDurationPrediction;
 import ro.ieat.soso.predictor.prediction.taskusage.PessimisticTaskUsagePrediction;
@@ -58,9 +55,12 @@ public class JobRequester {
     TaskUsageMappingRepository taskUsageMappingRepository;
 
     @Autowired
+    CoalitionRepository coalitionRepository;
+
+    @Autowired
     ScheduledRepository scheduledRepository;
     String[] jobRequestTargetUrls = {"http://localhost:8090/job", "http://localhost:8091/job", "http://localhost:8092/job"};
-    String[] types = {"rb-tree", "linear", "random"};
+    public static String[] types = {"rb-tree", "linear", "random"};
 
 
 
@@ -157,7 +157,8 @@ public class JobRequester {
     @RequestMapping(method = RequestMethod.PUT, path = "/app/start/{startTime}/{endTime}/{historySize}")
     public void jobRequestFlow(@PathVariable long startTime, @PathVariable long endTime, @PathVariable int historySize) throws Exception{
 
-        coalitionClient.deleteCoalitionsFromRepository();
+
+        coalitionRepository.deleteAll();
         scheduledRepository.deleteAll();
         long scheduledId = 0;
 

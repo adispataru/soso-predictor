@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 @SpringBootApplication
 @ComponentScan(basePackages = "ro.ieat.soso")
 @EnableMongoRepositories(basePackages = "ro.ieat.soso.persistence")
+
 public class AppConfig {
 
 

@@ -8,22 +8,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import ro.ieat.soso.App;
+import ro.ieat.soso.JobRequester;
 import ro.ieat.soso.core.coalitions.Coalition;
 import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.config.Configuration;
 import ro.ieat.soso.core.jobs.Job;
+import ro.ieat.soso.core.jobs.ScheduledJob;
 import ro.ieat.soso.core.jobs.TaskHistory;
 import ro.ieat.soso.core.mappers.MachineEventsMapper;
-import ro.ieat.soso.persistence.CoalitionRepository;
-import ro.ieat.soso.persistence.JobRepository;
-import ro.ieat.soso.persistence.MachineRepository;
-import ro.ieat.soso.persistence.TaskUsageMappingRepository;
+import ro.ieat.soso.evaluator.FineTuner;
+import ro.ieat.soso.persistence.*;
 import ro.ieat.soso.reasoning.controllers.CoalitionClient;
 import ro.ieat.soso.reasoning.startegies.AntColonyClusteringStrategy;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Created by adrian on 09.12.2015.
@@ -46,6 +47,8 @@ public class CoalitionReasoner {
     JobRepository jobRepository;
     @Autowired
     TaskUsageMappingRepository taskUsageMappingRepository;
+    @Autowired
+    ScheduledRepository scheduledRepository;
 
 
     @RequestMapping(method = RequestMethod.GET, path = "/coalitions/init/{time}")
@@ -85,6 +88,26 @@ public class CoalitionReasoner {
 
 //        LOG.info("Sending coalition " + c.getId() + "with size " + c.getMachines().size());
 
+        checkDuplicates(c);
+        coalitionClient.sendCoalition(c);
+    }
+
+    public void sendCoalitionToComponent(Coalition c, Long time, int componentIndex){
+
+        if(c.getCurrentETA() == null) {
+            c.setCurrentETA(time);
+        }
+
+        if (c.getId() == 0)
+            c.setId(c_id++);
+
+//        LOG.info("Sending coalition " + c.getId() + "with size " + c.getMachines().size());
+
+        checkDuplicates(c);
+        coalitionClient.sendCoalitionToComponent(c, componentIndex);
+    }
+
+    private void checkDuplicates(Coalition c) {
         if(c.getMachines().size() > 1) {
             Double mincpu = Double.MAX_VALUE;
             LOG.info("Sending coalition");
@@ -106,7 +129,6 @@ public class CoalitionReasoner {
             LOG.info(String.format("id: %d\nsize: %d\neta: %d\nmin_cpu: %.4f\nduplicates: %d\n",
                     c.getId(), c.getMachines().size(), c.getCurrentETA(), mincpu, duplicates));
         }
-        coalitionClient.sendCoalition(c);
     }
 
     public static void printCoaliion(Coalition c) throws IOException {
@@ -158,10 +180,10 @@ public class CoalitionReasoner {
         }
     }
 
-    public List<Coalition> antColonyClustering(List<Machine> machines, long time){
+    public List<Coalition> antColonyClustering(List<Machine> machines, Long time){
         Map<Long, Long> machineMaxTaskMap = new TreeMap<>();
         List<Job> jobList = jobRepository.findBySubmitTimeBetween((time - Configuration.STEP * App.historySize) *
-                Configuration.TIME_DIVISOR, time * Configuration.TIME_DIVISOR +1);
+                Configuration.TIME_DIVISOR - 1, time * Configuration.TIME_DIVISOR +1);
         LOG.info("JobList size: " + jobList.size());
         for(Job job : jobList){
             int size = job.getTaskHistory().size();
@@ -184,15 +206,45 @@ public class CoalitionReasoner {
     }
 
     @RequestMapping(method = RequestMethod.PUT, path = "/coalitions/update/{time}")
-    public void updateAll(@PathVariable long time) {
-        for (Coalition c : coalitionRepository.findAll()) {
-            update(c, time);
-            c = coalitionRepository.findOne(c.getId());
-            if (c.getCurrentETA() > (time + Configuration.STEP) * Configuration.TIME_DIVISOR)
-                sendCoalition(c, time);
+    public void updateAll(@PathVariable Long time) {
+//        Map<String, List<Long>> scheduledJobs = new TreeMap<>();
+        String[] types = JobRequester.types;
+        final Long finalTime = time;
+        int i = 0;
+        for(String type : types){
+           List<Long> scheduledCoalitions =
+                    scheduledRepository.findByScheduleType(type).stream().filter(s ->
+                            s.getTimeToStart() > (finalTime - Configuration.STEP *Configuration.TIME_DIVISOR))
+                            .map(ScheduledJob::getCoalitionId)
+                            .collect(Collectors.toList());
+//            LOG.severe(String.format("%s Scheduled Jobs: %d \n", type, scheduledJobs.get(type).size()));
+            List<Coalition> toDelete = new ArrayList<>();
+            List<Machine> toReorganize = new ArrayList<>();
+            final int component = i;
+
+            coalitionRepository.findAll().stream().filter(c -> !scheduledCoalitions.contains(c.getId())).forEach(c -> {
+                coalitionClient.deleteCoalitionFromComponent(c, component);
+                toDelete.add(c);
+                toReorganize.addAll(c.getMachines());
+            });
+
+            coalitionRepository.delete(toDelete);
+
+            List<Coalition> reorganized = antColonyClustering(toReorganize, time);
+
+            for (Coalition c : reorganized) {
+                sendCoalitionToComponent(c, time, component);
+            }
+            coalitionRepository.save(reorganized);
+            LOG.info("Coalitions created from reorganization for type = [" + type + "] : " + coalitionRepository.count());
+
+            i++;
         }
     }
 
+    private boolean isScheduled(Coalition c) {
+        return false;
+    }
 
 
     public int update(Coalition coalition, long time) {

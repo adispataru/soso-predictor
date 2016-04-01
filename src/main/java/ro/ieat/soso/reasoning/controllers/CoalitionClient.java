@@ -20,14 +20,33 @@ public class CoalitionClient{
 
 
     private static RestTemplate restTemplate;
-    private static String coalitionTargetUrl = "http://localhost:8088/coalitions";
     private static final Logger LOG = Logger.getLogger("CoalitionClient");
+    public static String[] targetUrls = {"http://localhost:8090/",
+            "http://localhost:8091/", "http://localhost:8092/"};
 
     public void sendCoalition(Coalition c){
-        restTemplate = new RestTemplate();
+
+        RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        restTemplate.postForObject(coalitionTargetUrl, c, Coalition.class, headers);
+        for(String coalitionTargetUrl : targetUrls) {
+            restTemplate.postForObject(coalitionTargetUrl + "coalition", c, Coalition.class, headers);
+        }
+
+    }
+
+    public void sendCoalitionToComponent(Coalition c, int componentIndex){
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        restTemplate.postForObject(targetUrls[componentIndex] + "coalition", c, Coalition.class, headers);
+
+    }
+    public void deleteCoalitionFromComponent(Coalition c, int componentIndex){
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        restTemplate.delete(targetUrls[componentIndex] + "coalition/" + c.getId());
 
     }
 
@@ -50,15 +69,13 @@ public class CoalitionClient{
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         for(JobDuration jd : jobs) {
-            //TODO A for over the clients of the platform
-            restTemplate.postForEntity("http://localhost:8090/jobDuration", jd, Object.class, headers);
-            restTemplate.postForObject("http://localhost:8091/jobDuration", jd, Object.class, headers);
-            restTemplate.postForObject("http://localhost:8092/jobDuration", jd, Object.class, headers);
+            for(String url : targetUrls) {
+                restTemplate.postForEntity(url + "jobDuration", jd, Object.class, headers);
+            }
         }
     }
 
     public void deleteCoalitionsFromRepository(){
-        restTemplate = new RestTemplate();
-        restTemplate.delete(coalitionTargetUrl);
+
     }
 }
