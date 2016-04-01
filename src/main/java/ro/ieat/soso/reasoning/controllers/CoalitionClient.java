@@ -46,7 +46,7 @@ public class CoalitionClient{
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        restTemplate.delete(targetUrls[componentIndex] + "coalition/" + c.getId());
+        restTemplate.delete(targetUrls[componentIndex] + "/DELETE/coalitions/" + c.getId());
 
     }
 
