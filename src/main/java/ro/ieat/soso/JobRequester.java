@@ -205,16 +205,15 @@ public class JobRequester {
             notScheduledJobs.put("rb-tree", 0L);
             notScheduledJobs.put("linear", 0L);
             notScheduledJobs.put("random", 0L);
-            //TODO This will function again during reorganization
-//            if(updateCoalition){
+            if(updateCoalition){
 //                LOG.info("Predicting machine usage...");
 //                predictionPath = "http://localhost:8088/predict/allUsage/" + initStart + "/" + initEnd;
 //                template.put(predictionPath, 1);
-//                LOG.info("Updating coalitions");
-//                template.put("http://localhost:8088/coalitions/update/" + initEnd, 1);
-//                LOG.info("Done.");
-//
-//            }
+                LOG.info("Updating coalitions");
+                template.put("http://localhost:8088/coalitions/update/" + initEnd, 1);
+                LOG.info("Done.");
+
+            }
 
             LOG.info("Searching jobs between " + initEnd + " and " + time);
             List<Job> jobs = jobRepository.findBySubmitTimeBetween(
@@ -269,9 +268,9 @@ public class JobRequester {
                 }
             }
             template.put("http://localhost:8088/finetuner/" + initEnd, 1);
-//            LOG.info("Predicting job runtime");
-//            template.put("http://localhost:8088/predict/job/" + initEnd +"/" + time, 1);
-//            LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
+            LOG.info("Predicting job runtime");
+            template.put("http://localhost:8088/predict/job/" + initEnd +"/" + time, 1);
+            LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
             updateCoalition = true;
         }
 
