@@ -65,7 +65,7 @@ public class CoalitionReasoner {
 
 
         for (Coalition c : coalitions) {
-            for(int type = 0; type < 3; type++){
+            for(int type = 0; type < types.length; type++){
                 c.setScheduleClass(type);
                 c.setId(c_id++);
                 coalitionRepository.save(c);
@@ -73,7 +73,7 @@ public class CoalitionReasoner {
             }
         }
 //        coalitionRepository.save(coalitions);
-        LOG.info("Coalitions created: " + coalitionRepository.count()/3);
+        LOG.info("Coalitions created: " + coalitionRepository.count()/types.length);
         return coalitions.size();
     }
 
