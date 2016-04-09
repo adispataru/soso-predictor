@@ -67,6 +67,7 @@ public class CoalitionReasoner {
         for (Coalition c : coalitions) {
             for(int type = 0; type < 3; type++){
                 c.setScheduleClass(type);
+                c.setId(c_id++);
                 coalitionRepository.save(c);
                 sendCoalitionToComponent(c, time, type);
             }
