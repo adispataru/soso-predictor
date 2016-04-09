@@ -2,29 +2,30 @@ package ro.ieat.soso.reasoning;
 
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.xml.DocumentDefaultsDefinition;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import ro.ieat.soso.App;
-import ro.ieat.soso.JobRequester;
 import ro.ieat.soso.core.coalitions.Coalition;
 import ro.ieat.soso.core.coalitions.Machine;
 import ro.ieat.soso.core.config.Configuration;
 import ro.ieat.soso.core.jobs.Job;
 import ro.ieat.soso.core.jobs.ScheduledJob;
 import ro.ieat.soso.core.jobs.TaskHistory;
-import ro.ieat.soso.core.mappers.MachineEventsMapper;
-import ro.ieat.soso.evaluator.FineTuner;
 import ro.ieat.soso.persistence.*;
 import ro.ieat.soso.reasoning.controllers.CoalitionClient;
 import ro.ieat.soso.reasoning.startegies.AntColonyClusteringStrategy;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
+import static ro.ieat.soso.JobRequester.types;
+import static ro.ieat.soso.evaluator.FineTuner.testOutputPath;
 
 /**
  * Created by adrian on 09.12.2015.
@@ -62,11 +63,16 @@ public class CoalitionReasoner {
 
         List<Coalition> coalitions = antColonyClustering(machineRepository.findAll(), time);
 
+
         for (Coalition c : coalitions) {
-            sendCoalition(c, time);
+            for(int type = 0; type < 3; type++){
+                c.setScheduleClass(type);
+                coalitionRepository.save(c);
+                sendCoalitionToComponent(c, time, type);
+            }
         }
-        coalitionRepository.save(coalitions);
-        LOG.info("Coalitions created: " + coalitionRepository.count());
+//        coalitionRepository.save(coalitions);
+        LOG.info("Coalitions created: " + coalitionRepository.count()/3);
         return coalitions.size();
     }
 
@@ -100,6 +106,7 @@ public class CoalitionReasoner {
 
         if (c.getId() == 0)
             c.setId(c_id++);
+
 
 //        LOG.info("Sending coalition " + c.getId() + "with size " + c.getMachines().size());
 
@@ -208,13 +215,15 @@ public class CoalitionReasoner {
     @RequestMapping(method = RequestMethod.PUT, path = "/coalitions/update/{time}")
     public void updateAll(@PathVariable Long time) {
 //        Map<String, List<Long>> scheduledJobs = new TreeMap<>();
-        String[] types = JobRequester.types;
         final Long finalTime = time;
         int i = 0;
+        int[] deleted = new int[3];
+        int[] created = new int[3];
+        int[] total = new int[3];
         for(String type : types){
            List<Long> scheduledCoalitions =
                     scheduledRepository.findByScheduleType(type).stream().filter(s ->
-                            s.getTimeToStart() > (finalTime - Configuration.STEP *Configuration.TIME_DIVISOR))
+                            s.getFinishTime() < finalTime)
                             .map(ScheduledJob::getCoalitionId)
                             .collect(Collectors.toList());
 //            LOG.severe(String.format("%s Scheduled Jobs: %d \n", type, scheduledJobs.get(type).size()));
@@ -222,23 +231,52 @@ public class CoalitionReasoner {
             List<Machine> toReorganize = new ArrayList<>();
             final int component = i;
 
-            coalitionRepository.findAll().stream().filter(c -> !scheduledCoalitions.contains(c.getId())).forEach(c -> {
-                coalitionClient.deleteCoalitionFromComponent(c, component);
-                toDelete.add(c);
-                toReorganize.addAll(c.getMachines());
-            });
-
-            coalitionRepository.delete(toDelete);
+            List<Coalition> coalitionList = coalitionRepository.findByScheduleClass(component);
+            if(coalitionList.size() > 0) {
+                coalitionList.stream().filter(c -> !scheduledCoalitions.contains(c.getId())).forEach(c -> {
+                    coalitionClient.deleteCoalitionFromComponent(c, component);
+                    toDelete.add(c);
+                    toReorganize.addAll(c.getMachines());
+                });
+            }
 
             List<Coalition> reorganized = antColonyClustering(toReorganize, time);
 
             for (Coalition c : reorganized) {
                 sendCoalitionToComponent(c, time, component);
             }
+            deleted[component] = toDelete.size();
+            created[component] = reorganized.size();
+            coalitionRepository.delete(toDelete);
             coalitionRepository.save(reorganized);
-            LOG.info("Coalitions created from reorganization for type = [" + type + "] : " + coalitionRepository.count());
+            total[component] = coalitionList.size() - toDelete.size() + reorganized.size();
+            LOG.info("Coalitions created from reorganization for type = [" + type + "] : " + reorganized.size());
 
             i++;
+        }
+        writeResults(time, deleted, created, total);
+    }
+
+    private void writeResults(Long time, int[] deleted, int[] created, int[] total) {
+        for (int i = 0 ; i < types.length; i++) {
+            File f = new File(testOutputPath + "load/" + types[i] + "/idle_coals");
+            FileWriter fileWriter = null;
+            boolean writeHeader = !f.exists();
+            try {
+                fileWriter = new FileWriter(f, true);
+                if (writeHeader)
+                    fileWriter.write("%time #deleted #created #total\n");
+                fileWriter.write(String.format("%d %d %d %d\n", time, deleted[i], created[i], total[i]));
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                if (fileWriter != null)
+                    try {
+                        fileWriter.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+            }
         }
     }
 

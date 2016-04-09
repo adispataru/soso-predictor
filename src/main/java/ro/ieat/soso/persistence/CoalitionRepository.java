@@ -14,4 +14,5 @@ public interface CoalitionRepository extends MongoRepository<Coalition, Long>{
     //TODO Check what you put in coalition.jobs
     List<Coalition> findByLogicJobName(String logicJobName);
     Coalition findByMachinesId(Long id);
+    List<Coalition> findByScheduleClass(long scheduleClass);
 }

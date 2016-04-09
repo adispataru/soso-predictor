@@ -49,7 +49,7 @@ public class FineTuner {
     Logger LOG = Logger.getLogger("FineTuner");
 
     RestTemplate template = new RestTemplate();
-    private static final String testOutputPath = "./output/results/";
+    public static final String testOutputPath = "./output/results/";
 
 
     private boolean jobListContainsId(List<Job> list, Long id){
