@@ -227,7 +227,6 @@ public class FineTuner {
                     Map<String, TaskUsage> machineUsage = new TreeMap<>();
                     int typeNo = 0;
                     for(String type : types) {
-                        LOG.info(type + " scheduled jobs map: " + scheduledJobs.get(type).size());
                         usageMap.put(type, allTaskUsageList.stream().filter(t ->
                                 isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobs.get(type), type))
                                 .collect(Collectors.toList()));
