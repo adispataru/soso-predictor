@@ -81,7 +81,7 @@ public class FineTuner {
                                             List<ScheduledJob> list, String type) {
         scheduledJobMap.putIfAbsent(type, new TreeMap<>());
 
-        if (list.size() > 0 && !scheduledJobMap.get(type).containsKey(list.get(0).getJobId())) {
+        if (list.size() > 0 &&!scheduledJobMap.get(type).containsKey(list.get(0).getJobId())) {
             list.forEach(s -> scheduledJobMap.get(type).put(s.getJobId(), s));
         }
         return isTaskScheduled(jobId, taskIndex, taskMachineId, machineId, scheduledJobMap.get(type));
@@ -227,6 +227,7 @@ public class FineTuner {
                     Map<String, TaskUsage> machineUsage = new TreeMap<>();
                     int typeNo = 0;
                     for(String type : types) {
+                        LOG.info(type + " scheduled jobs map: " + scheduledJobs.get(type).size());
                         usageMap.put(type, allTaskUsageList.stream().filter(t ->
                                 isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobs.get(type), type))
                                 .collect(Collectors.toList()));
