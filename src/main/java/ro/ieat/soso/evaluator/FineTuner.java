@@ -81,7 +81,7 @@ public class FineTuner {
                                             List<ScheduledJob> list, String type) {
         scheduledJobMap.putIfAbsent(type, new TreeMap<>());
 
-        if (!scheduledJobMap.get(type).containsKey(list.get(0).getJobId())) {
+        if (list.size() > 0 && !scheduledJobMap.get(type).containsKey(list.get(0).getJobId())) {
             list.forEach(s -> scheduledJobMap.get(type).put(s.getJobId(), s));
         }
         return isTaskScheduled(jobId, taskIndex, taskMachineId, machineId, scheduledJobMap.get(type));
