@@ -43,9 +43,6 @@ public class RankAndLabelCoalitionStrategy extends AbstractCoalitionStrategy {
         LOG.info("Random meeting ants: " + rankableMachines.size());
 //        Map<Long, List<Ant>> clusters = randomMeetAnts(rankableMachines);
         LOG.info("Done.");
-        Map<Long, Double> nClusters = new TreeMap<>();
-        Map<Long, Double> averageMPlus = new TreeMap<>();
-//        List<Ant> freeAnts = new ArrayList<>();
 
 
         LOG.info("Creating coalitions from clusters...");
@@ -117,7 +114,7 @@ public class RankAndLabelCoalitionStrategy extends AbstractCoalitionStrategy {
             adjustThresholdAndValue(a, maxSize);
             int j = 0;
             while (j < result.size()) {
-                if (a.value < result.get(j).value)
+                if (a.threshold < result.get(j).threshold)
                     j++;
                 else {
                     result.add(j, a);
