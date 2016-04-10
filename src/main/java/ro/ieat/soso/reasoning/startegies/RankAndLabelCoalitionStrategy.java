@@ -40,7 +40,7 @@ public class RankAndLabelCoalitionStrategy extends AbstractCoalitionStrategy {
         List<Rankable> ranked = rankLearnThreshold(rankableMachines, maxSize);
         LOG.info("Done.");
 
-        LOG.info("Random meeting ants: " + rankableMachines.size());
+        LOG.info("Random meeting ants: " + ranked.size());
 //        Map<Long, List<Ant>> clusters = randomMeetAnts(rankableMachines);
         LOG.info("Done.");
 
