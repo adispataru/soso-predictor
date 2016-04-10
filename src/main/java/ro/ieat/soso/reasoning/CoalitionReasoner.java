@@ -40,7 +40,7 @@ public class CoalitionReasoner {
     private static Logger LOG = Logger.getLogger(CoalitionReasoner.class.toString());
     public static long c_id = 1;
     private CoalitionClient coalitionClient = new CoalitionClient();
-    private int coalitionStrategyId = 0; // 0 - ACC; 1 - RaL; 2 - Random
+    private int coalitionStrategyId = 1; // 0 - ACC; 1 - RaL; 2 - Random
 
     @Autowired
     CoalitionRepository coalitionRepository;
