@@ -28,6 +28,8 @@ import java.util.concurrent.Future;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import static ro.ieat.soso.JobRequester.types;
+
 /**
  * Created by adrian on 13.01.2016.
  * This class is used to compute errors in predictions and to write into files the state of the system.
@@ -155,7 +157,7 @@ public class FineTuner {
 //            }
 //        }
 
-        String[] types = {"rb-tree", "linear", "random"};
+//        String[] types = {"rb-tree", "linear", "random"};
 
         long totalTasks = 0;
 
