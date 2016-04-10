@@ -1,5 +1,6 @@
 package ro.ieat.soso.evaluator;
 
+import org.apache.catalina.Executor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,6 +21,10 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -122,7 +127,7 @@ public class FineTuner {
 
 
     @RequestMapping(method = RequestMethod.PUT, path = "/finetuner/{time}")
-    public void fineTuneAndWriteResults(@PathVariable  Long time){
+    public void fineTuneAndWriteResults(@PathVariable  Long time) throws ExecutionException, InterruptedException {
 
         long measurementTime = System.currentTimeMillis();
 
@@ -205,55 +210,69 @@ public class FineTuner {
             }
         }
 
-        for(Machine m : machineRepository.findAll()){
+        //TODO Beautify this multi-threaded part
+        int numProcs = Runtime.getRuntime().availableProcessors();
+        List<Machine> machines = machineRepository.findAll();
+        ExecutorService executorService = Executors.newFixedThreadPool(numProcs);
+        List<Future<?>> futures = new ArrayList<Future<?>>(machines.size());
+        LOG.info("Computing usage on " + numProcs + " threads.");
+        for (Machine m : machines) {
+            futures.add(executorService.submit(new Runnable(){
 
-
-//            LOG.info("Computing usage");
+                @Override
+                public void run() {
 //            long filterTime = System.currentTimeMillis();
-            Map<String, List<TaskUsage>> usageMap = new TreeMap<>();
-            Map<String, TaskUsage> machineLoad = new TreeMap<>();
-            Map<String, TaskUsage> machineUsage = new TreeMap<>();
-            int typeNo = 0;
-            for(String type : types) {
-                usageMap.put(type, allTaskUsageList.stream().filter(t ->
-                        isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobs.get(type), type))
-                        .collect(Collectors.toList()));
-                 machineLoad.put(type, TaskUsageCombiner.
-                        combineTaskUsageList(usageMap.get(type), lowTime));
-                machineUsage.put(type, new TaskUsage());
-                machineUsage.get(type).addTaskUsage(machineLoad.get(type));
+                    Map<String, List<TaskUsage>> usageMap = new TreeMap<>();
+                    Map<String, TaskUsage> machineLoad = new TreeMap<>();
+                    Map<String, TaskUsage> machineUsage = new TreeMap<>();
+                    int typeNo = 0;
+                    for(String type : types) {
+                        usageMap.put(type, allTaskUsageList.stream().filter(t ->
+                                isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobs.get(type), type))
+                                .collect(Collectors.toList()));
+                        machineLoad.put(type, TaskUsageCombiner.
+                                combineTaskUsageList(usageMap.get(type), lowTime));
+                        machineUsage.put(type, new TaskUsage());
+                        machineUsage.get(type).addTaskUsage(machineLoad.get(type));
 //            LOG.info("Done in " + (System.currentTimeMillis() - filterTime) + " s.");
 //            LOG.info("Usage size: rb-tree/random" + usageList.size() + " / " + usageListRandom.size());
 //            List<TaskUsage> usageWithoutScheduled = usageList.stream().filter(t -> !jobListContainsId(jobList, t.getId()))
 //                    .collect(Collectors.toList());
-                machineLoad.get(type).divideCPU(m.getCpu());
-                machineLoad.get(type).divideMemory(m.getMemory());
-                loadMap.get(type).put(m.getId(), machineLoad.get(type));
+                        machineLoad.get(type).divideCPU(m.getCpu());
+                        machineLoad.get(type).divideMemory(m.getMemory());
+                        loadMap.get(type).put(m.getId(), machineLoad.get(type));
 
-                //overcommit
-                int i = usageMap.get(type).size() - 1;
-                //actually makes sense to subtract usage of task which produced error.
+                        //overcommit
+                        int i = usageMap.get(type).size() - 1;
+                        //actually makes sense to subtract usage of task which produced error.
 
-                boolean overcommit = false;
-                while((machineUsage.get(type).getCpu() > THRESHOLD * m.getCpu() ||
-                        machineUsage.get(type).getMemory() > THRESHOLD * m.getMemory()) && i >= 0) {
-                    LOG.info(type + ":\nMachine usage" + machineUsage.get(type).getCpu() + " " + machineUsage.get(type).getMemory() +
-                            "\nMachine capacity " + m.getCpu() + " " + m.getMemory());
+                        boolean overcommit = false;
+                        while((machineUsage.get(type).getCpu() > THRESHOLD * m.getCpu() ||
+                                machineUsage.get(type).getMemory() > THRESHOLD * m.getMemory()) && i >= 0) {
+                            LOG.info(type + ":\nMachine usage" + machineUsage.get(type).getCpu() + " " + machineUsage.get(type).getMemory() +
+                                    "\nMachine capacity " + m.getCpu() + " " + m.getMemory());
 
-                    machineUsage.get(type).substractTaskUsage(usageMap.get(type).get(i));
-                    schedulingErrors[typeNo]++;
+                            machineUsage.get(type).substractTaskUsage(usageMap.get(type).get(i));
+                            synchronized (schedulingErrors[typeNo]){
+                                schedulingErrors[typeNo]++;
+                            }
 
-                    i--;
-                    overcommit = true;
+                            i--;
+                            overcommit = true;
+                        }
+
+                        if(overcommit) {
+                            logOvercommit(LOG, i);
+                        }
+                        typeNo++;
+                    }
                 }
-
-                if(overcommit) {
-                    logOvercommit(LOG, i);
-                }
-                typeNo++;
-            }
-
+            }));
         }
+        for (Future<?> f : futures) {
+            f.get(); // wait for a processor to complete
+        }
+        LOG.info("all items processed");
 
 
         long computeMeasurementTime = System.currentTimeMillis();
