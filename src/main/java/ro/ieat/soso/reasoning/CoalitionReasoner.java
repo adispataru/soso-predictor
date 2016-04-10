@@ -82,6 +82,8 @@ public class CoalitionReasoner {
 
     public void sendCoalition(Coalition c, long time) {
 
+        if(time / 10000 < 10)
+            time = time * Configuration.TIME_DIVISOR;
         if(c.getCurrentETA() == null) {
 //            for (Machine m : c.getMachines()) {
 ////                Machine m = machineRepository.findOne(mID);
@@ -103,6 +105,8 @@ public class CoalitionReasoner {
 
     public void sendCoalitionToComponent(Coalition c, Long time, int componentIndex){
 
+        if(time / 10000 < 10)
+            time = time * Configuration.TIME_DIVISOR;
         if(c.getCurrentETA() == null) {
             c.setCurrentETA(time);
         }
