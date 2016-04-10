@@ -2,6 +2,7 @@ package ro.ieat.soso.reasoning.startegies;
 
 import ro.ieat.soso.core.coalitions.Coalition;
 import ro.ieat.soso.core.coalitions.Machine;
+import ro.ieat.soso.reasoning.ResourceAbstraction;
 
 import java.util.*;
 import java.util.logging.Logger;
@@ -9,7 +10,7 @@ import java.util.logging.Logger;
 /**
  * Created by adrian on 2/10/16.
  */
-public class AntColonyClusteringStrategy {
+public class AntColonyClusteringStrategy extends AbstractCoalitionStrategy {
 
     private final Map<Long, Long> machineMaxTaskMapping;
     private Map<Integer, Map<Integer, Double>> similarityMap;
@@ -25,7 +26,9 @@ public class AntColonyClusteringStrategy {
     }
 
 
-    public List<Coalition> clusterize(List<Machine> machines){
+    public List<Coalition> createCoalitions(List<Machine> machines){
+        if (machines.size() < 1)
+            return new ArrayList<Coalition>();
         similarityMap = new TreeMap<>();
         List<Ant> ants = new ArrayList<>();
         for(Machine m : machines){
@@ -34,7 +37,7 @@ public class AntColonyClusteringStrategy {
         }
 
         LOG.info("Learning threshold");
-        learnThreshold(ants);
+        antLearnThreshold(ants);
         LOG.info("Done.");
 
         LOG.info("Random meeting ants: " + ants.size());
@@ -169,6 +172,19 @@ public class AntColonyClusteringStrategy {
         return result;
     }
 
+    @Override
+    public void learnThreshold(List<? extends ResourceAbstraction> resourceAbstractionList) {
+
+        List<Ant> antList = new ArrayList<>();
+        resourceAbstractionList.forEach(r ->{
+            if(r instanceof Ant)
+                antList.add((Ant) r);
+        });
+
+        antLearnThreshold( antList);
+    }
+
+
     private Map<Long, List<Ant>> randomMeetAnts(List<Ant> ants) {
         Random r = new Random();
         int total = 100000;
@@ -294,15 +310,15 @@ public class AntColonyClusteringStrategy {
 
     }
 
-    public Double decrease(Double m){
+    private Double decrease(Double m){
         return (1 - alpha) * m;
     }
 
-    public Double increase(Double m){
+    private Double increase(Double m){
         return (1 - alpha) * m + m;
     }
 
-    public void learnThreshold(List<Ant> ants){
+    private void antLearnThreshold(List<Ant> ants){
         int sampleSize = 500;
 
         for(int i = 0; i < ants.size(); i++){
@@ -350,7 +366,7 @@ public class AntColonyClusteringStrategy {
     }
 
 
-    private class Ant {
+    private class Ant extends ResourceAbstraction {
         Machine data;
         Long label;
         Double threshold;
@@ -361,7 +377,7 @@ public class AntColonyClusteringStrategy {
         Double mPlus;
         Integer id;
 
-        public Ant(Machine m){
+        Ant(Machine m){
             this.id = antCounter++;
             this.data = m;
             label = 0L;
@@ -380,7 +396,7 @@ public class AntColonyClusteringStrategy {
             return false;
         }
 
-        public void reset(){
+        void reset(){
             label = 0L;
         }
 

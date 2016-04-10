@@ -16,6 +16,7 @@ import ro.ieat.soso.core.jobs.TaskHistory;
 import ro.ieat.soso.persistence.*;
 import ro.ieat.soso.reasoning.controllers.CoalitionClient;
 import ro.ieat.soso.reasoning.startegies.AntColonyClusteringStrategy;
+import ro.ieat.soso.reasoning.startegies.RankAndLabelCoalitionStrategy;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -39,6 +40,7 @@ public class CoalitionReasoner {
     private static Logger LOG = Logger.getLogger(CoalitionReasoner.class.toString());
     public static long c_id = 1;
     private CoalitionClient coalitionClient = new CoalitionClient();
+    private int coalitionStrategyId = 1; // 0 - ACC; 1 - RaL; 2 - Random
 
     @Autowired
     CoalitionRepository coalitionRepository;
@@ -61,7 +63,7 @@ public class CoalitionReasoner {
         int i = 1;
         long size = machineRepository.count();
 
-        List<Coalition> coalitions = antColonyClustering(machineRepository.findAll(), time);
+        List<Coalition> coalitions = createCoalitions(machineRepository.findAll(), time, coalitionStrategyId);
 
 
         for (Coalition c : coalitions) {
@@ -188,13 +190,16 @@ public class CoalitionReasoner {
         }
     }
 
-    public List<Coalition> antColonyClustering(List<Machine> machines, Long time){
+    public List<Coalition> createCoalitions(List<Machine> machines, Long time, int coalitionStrategyId){
         Map<Long, Long> machineMaxTaskMap = new TreeMap<>();
         List<Job> jobList = jobRepository.findBySubmitTimeBetween((time - Configuration.STEP * App.historySize) *
                 Configuration.TIME_DIVISOR - 1, time * Configuration.TIME_DIVISOR +1);
         LOG.info("JobList size: " + jobList.size());
+        int maxSize = 0;
         for(Job job : jobList){
             int size = job.getTaskHistory().size();
+            if(size > maxSize)
+                maxSize = size;
             for(TaskHistory th : job.getTaskHistory().values()){
                 if(machineMaxTaskMap.containsKey(th.getMachineId())) {
                     if (machineMaxTaskMap.get(th.getMachineId()) < size)
@@ -206,8 +211,23 @@ public class CoalitionReasoner {
             }
         }
         LOG.info("TaskMaxMapping size: " + machineMaxTaskMap.size());
-        AntColonyClusteringStrategy acs = new AntColonyClusteringStrategy(machineMaxTaskMap);
-        List<Coalition> result = acs.clusterize(machines);
+        List<Coalition> result = null;
+        switch (coalitionStrategyId){
+            case 0:
+                //ACC
+                AntColonyClusteringStrategy acs = new AntColonyClusteringStrategy(machineMaxTaskMap);
+                 result = acs.createCoalitions(machines);
+                break;
+            case 1:
+                //RaL
+                RankAndLabelCoalitionStrategy rals = new RankAndLabelCoalitionStrategy(machineMaxTaskMap, maxSize);
+                result = rals.createCoalitions(machines);
+                break;
+            case 2:
+                //Random
+                break;
+        }
+
         return result;
 
 
@@ -241,7 +261,7 @@ public class CoalitionReasoner {
                 });
             }
 
-            List<Coalition> reorganized = antColonyClustering(toReorganize, time);
+            List<Coalition> reorganized = createCoalitions(toReorganize, time, coalitionStrategyId);
 
             for (Coalition c : reorganized) {
                 sendCoalitionToComponent(c, time, component);
