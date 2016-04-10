@@ -130,11 +130,13 @@ public class RankAndLabelCoalitionStrategy extends AbstractCoalitionStrategy {
     }
 
     private void adjustThresholdAndValue(Rankable a, int maxSize) {
-        Long resourceValue = 0L;
-        if(machineMaxTaskMapping.get(a.data.getId()) != null)
-            resourceValue = machineMaxTaskMapping.get(a.data.getId());
-        a.threshold = (maxSize - resourceValue + 1) / (double) maxSize;
-        a.value = resourceValue/(double)maxSize;
+        if(machineMaxTaskMapping.get(a.data.getId()) != null) {
+            Long resourceValue = machineMaxTaskMapping.get(a.data.getId());
+            a.threshold = (double) 1 / resourceValue;
+            a.value = resourceValue / (double) maxSize;
+        }else{
+            a.threshold = 1.0;
+        }
     }
 
 
