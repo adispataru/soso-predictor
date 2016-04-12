@@ -193,24 +193,22 @@ public class FineTuner {
         Map<String, List<Long>> latenessMap = new TreeMap<>();
         Map<String, Long> scheduledTasks = new TreeMap<>();
         for(String type : types){
-            latenessMap.put(type, new ArrayList<>());
+//            latenessMap.put(type, new ArrayList<>());
             scheduledTasks.put(type, 0L);
             loadMap.put(type, new TreeMap<>());
-        }
 
-
-        for(String type : types) {
             for (ScheduledJob j : scheduledJobs.get(type)) {
                 long real = getJobScheduleTime(jobList, j.getJobId());
                 if (real == 0)
                     continue;
 
-                latenessMap.get(type).add(j.getTimeToStart() - real);
+//                latenessMap.get(type).add(j.getTimeToStart() - real);
                 Long l = scheduledTasks.get(type) + j.getTaskMachineMapping().size();
                 scheduledTasks.put(type, l);
 
             }
         }
+
 
         //TODO Beautify this multi-threaded part
         int numProcs = Runtime.getRuntime().availableProcessors();
@@ -218,6 +216,7 @@ public class FineTuner {
         ExecutorService executorService = Executors.newFixedThreadPool(numProcs);
         List<Future<?>> futures = new ArrayList<Future<?>>(machines.size());
         LOG.info("Computing usage on " + numProcs + " threads.");
+        int count = 0;
         for (Machine m : machines) {
             futures.add(executorService.submit(new Runnable(){
 
@@ -295,23 +294,23 @@ public class FineTuner {
             writeScheduleErrors(schedulingErrors[i], scheduledTasks.get(type), totalTasks, time, type);
 
 
-            Long[] idleCoalitions = {0L, 0L, 0L};
-            List<Coalition> coalitions = coalitionRepository.findAll();
-            for (Coalition c : coalitions) {
-                Long[] totalIdle = {0L, 0L, 0L};
-
-                for (Machine machineId : c.getMachines()) {
-                    if (loadMap.get(type).get(machineId.getId()).getCpu() < IDLE_THRESHOLD)
-                        totalIdle[i]++;
-                }
-                if (totalIdle[i] == c.getMachines().size())
-                    idleCoalitions[i]++;
-            }
-
-
-            LOG.info("Writing idle coalitions");
-            writeIdleCoalition(idleCoalitions[i], coalitions.size(), time, type);
-            writeLateness(latenessMap, time);
+//            Long[] idleCoalitions = {0L, 0L, 0L};
+//            List<Coalition> coalitions = coalitionRepository.findAll();
+//            for (Coalition c : coalitions) {
+//                Long[] totalIdle = {0L, 0L, 0L};
+//
+//                for (Machine machineId : c.getMachines()) {
+//                    if (loadMap.get(type).get(machineId.getId()).getCpu() < IDLE_THRESHOLD)
+//                        totalIdle[i]++;
+//                }
+//                if (totalIdle[i] == c.getMachines().size())
+//                    idleCoalitions[i]++;
+//            }
+//
+//
+//            LOG.info("Writing idle coalitions");
+//            writeIdleCoalition(idleCoalitions[i], coalitions.size(), time, type);
+//            writeLateness(latenessMap, time);
             i++;
 
         }
