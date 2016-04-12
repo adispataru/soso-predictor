@@ -221,7 +221,7 @@ public class FineTuner {
         List<Future<?>> futures = new ArrayList<Future<?>>(machines.size());
         LOG.info("Computing usage on " + numProcs + " threads.");
         int count = 0;
-        for (Machine m : machines) {
+            for(String type : types) {
             futures.add(executorService.submit(new Runnable(){
 
                 @Override
@@ -231,7 +231,7 @@ public class FineTuner {
                     Map<String, TaskUsage> machineLoad = new TreeMap<>();
                     Map<String, TaskUsage> machineUsage = new TreeMap<>();
                     int typeNo = 0;
-                    for(String type : types) {
+                    for (Machine m : machines) {
                         usageMap.put(type, allTaskUsageList.stream().filter(t ->
                                 isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobs.get(type), type))
                                 .collect(Collectors.toList()));
