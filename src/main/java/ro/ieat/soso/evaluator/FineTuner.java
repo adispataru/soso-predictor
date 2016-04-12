@@ -256,9 +256,11 @@ public class FineTuner {
                             LOG.info(type + ":\nMachine usage" + machineUsage.get(type).getCpu() + " " + machineUsage.get(type).getMemory() +
                                     "\nMachine capacity " + m.getCpu() + " " + m.getMemory());
 
-                            machineUsage.get(type).substractTaskUsage(usageMap.get(type).get(i));
-                            synchronized (schedulingErrors[typeNo]){
-                                schedulingErrors[typeNo]++;
+                            if(usageMap.get(type).get(i).getCpu() > 0.1) {
+                                machineUsage.get(type).substractTaskUsage(usageMap.get(type).get(i));
+                                synchronized (schedulingErrors[typeNo]) {
+                                    schedulingErrors[typeNo]++;
+                                }
                             }
 
                             i--;
