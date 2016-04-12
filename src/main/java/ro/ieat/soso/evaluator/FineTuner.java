@@ -83,9 +83,11 @@ public class FineTuner {
 
         if(list.get(0) == null)
             LOG.severe("null item in list");
-        if (list.size() > 0 && !scheduledJobMap.get(type).containsKey(list.get(0).getJobId())) {
-            synchronized (scheduledJobMap.get(type)) {
+        synchronized (scheduledJobMap.get(type)) {
+            if (list.size() > 0 && !scheduledJobMap.get(type).containsKey(list.get(0).getJobId())) {
+
                 list.forEach(s -> scheduledJobMap.get(type).put(s.getJobId(), s));
+
             }
         }
         return isTaskScheduled(jobId, taskIndex, taskMachineId, machineId, scheduledJobMap.get(type));
