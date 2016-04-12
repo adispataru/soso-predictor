@@ -221,7 +221,9 @@ public class FineTuner {
         List<Future<?>> futures = new ArrayList<Future<?>>(machines.size());
         LOG.info("Computing usage on " + numProcs + " threads.");
         int count = 0;
+        int typeNo = 0;
             for(String type : types) {
+                final int finalTypeNo = typeNo;
             futures.add(executorService.submit(new Runnable(){
 
                 @Override
@@ -230,7 +232,7 @@ public class FineTuner {
                     Map<String, List<TaskUsage>> usageMap = new TreeMap<>();
                     Map<String, TaskUsage> machineLoad = new TreeMap<>();
                     Map<String, TaskUsage> machineUsage = new TreeMap<>();
-                    int typeNo = 0;
+
                     for (Machine m : machines) {
                         usageMap.put(type, allTaskUsageList.stream().filter(t ->
                                 isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobs.get(type), type))
@@ -261,8 +263,8 @@ public class FineTuner {
 
                             if(usageMap.get(type).get(i).getCpu() > 0.1) {
                                 machineUsage.get(type).substractTaskUsage(usageMap.get(type).get(i));
-                                synchronized (schedulingErrors[typeNo]) {
-                                    schedulingErrors[typeNo]++;
+                                synchronized (schedulingErrors[finalTypeNo]) {
+                                    schedulingErrors[finalTypeNo]++;
                                 }
                             }
 
@@ -273,10 +275,10 @@ public class FineTuner {
                         if(overcommit) {
                             logOvercommit(LOG, i);
                         }
-                        typeNo++;
                     }
                 }
             }));
+                typeNo++;
         }
         for (Future<?> f : futures) {
             f.get(); // wait for a processor to complete
