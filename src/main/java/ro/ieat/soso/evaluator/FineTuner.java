@@ -222,8 +222,8 @@ public class FineTuner {
         LOG.info("Computing usage on " + numProcs + " threads.");
         int count = 0;
         int typeNo = 0;
-            for(String type : types) {
-                final int finalTypeNo = typeNo;
+        for(String type : types) {
+            final int finalTypeNo = typeNo;
             futures.add(executorService.submit(new Runnable(){
 
                 @Override
@@ -278,7 +278,7 @@ public class FineTuner {
                     }
                 }
             }));
-                typeNo++;
+            typeNo++;
         }
         for (Future<?> f : futures) {
             f.get(); // wait for a processor to complete
