@@ -201,10 +201,12 @@ public class JobRequester {
         time = initEnd + Configuration.STEP;
         boolean updateCoalition = false;
         while(time <= endTime) {
+            Map<String, Long> notScheduledTasks = new TreeMap<>();
             Map<String, Long> notScheduledJobs = new TreeMap<>();
-            notScheduledJobs.put("rb-tree", 0L);
-            notScheduledJobs.put("linear", 0L);
-            notScheduledJobs.put("random", 0L);
+            for(String type : JobRequester.types) {
+                notScheduledTasks.put(type, 0L);
+                notScheduledJobs.put(type, 0L);
+            }
             if(updateCoalition){
 //                LOG.info("Predicting machine usage...");
 //                predictionPath = "http://localhost:8088/predict/allUsage/" + initStart + "/" + initEnd;
@@ -242,7 +244,8 @@ public class JobRequester {
                             scheduledJob.setScheduleType(type);
                             scheduledRepository.save(scheduledJob);
                         } else {
-                            notScheduledJobs.put(type, notScheduledJobs.get(type) + j.getTaskHistory().size());
+                            notScheduledTasks.put(type, notScheduledTasks.get(type) + j.getTaskHistory().size());
+                            notScheduledJobs.put(type, notScheduledJobs.get(type) + 1);
                             LOG.severe(String.format("Job %d cannot be scheduled by %s", j.getJobId(), type));
                         }
                         i++;
@@ -253,7 +256,7 @@ public class JobRequester {
                     LOG.info("Not sending " + j.getJobId() + " because status is " + j.getStatus() + " at time " + j.getSubmitTime());
                 }
             }
-            writeJobSchedulingErrors(notScheduledJobs, sent, total, time);
+            writeJobSchedulingErrors(notScheduledTasks, notScheduledJobs, sent, total, time);
 
 
             initEnd = time;
@@ -286,12 +289,17 @@ public class JobRequester {
 
     }
 
-    public void writeJobSchedulingErrors(Map<String, Long> notScheduledJobs, long sent, long  total, long time){
+    public void writeJobSchedulingErrors(Map<String, Long> notScheduledTasks, Map<String, Long> notScheduledJobs, long sent, long total, long time){
         try {
-            FileWriter fileWriter = new FileWriter("./output/results/schedule/not_planned_errors", true);
+            File f = new File("./output/results/schedule/not_planned_errors");
+            if(!f.exists()){
+                FileWriter header = new FileWriter(f);
+                header.write("#time rb-treeJobs tasks linearJobs tasks randomJobs tasks sent total");
+            }
+            FileWriter fileWriter = new FileWriter(f, true);
             fileWriter.write(time + " ");
-            for (String s : notScheduledJobs.keySet()) {
-                fileWriter.write(notScheduledJobs.get(s) + " ");
+            for (String s : JobRequester.types) {
+                fileWriter.write(notScheduledJobs.get(s) + " " + notScheduledTasks.get(s) + " ");
             }
             fileWriter.write(sent + " " + total + "\n");
             fileWriter.close();
