@@ -287,6 +287,9 @@ public class CoalitionReasoner {
     private void writeResults(Long time, int[] deleted, int[] created, int[] total) {
         for (int i = 0 ; i < types.length; i++) {
             File f = new File(testOutputPath + "load/" + types[i] + "/coals");
+            File dir = new File(testOutputPath + "load/" + types[i]);
+            if(!dir.exists())
+                dir.mkdirs();
             FileWriter fileWriter = null;
             boolean writeHeader = !f.exists();
             try {
