@@ -61,7 +61,6 @@ public class CoalitionReasoner {
         Map<Long, Coalition> coalitionMap = new TreeMap<Long, Coalition>();
 
         int i = 1;
-        long size = machineRepository.count();
 
         List<Coalition> coalitions = createCoalitions(machineRepository.findAll(), time, coalitionStrategyId);
 
@@ -75,7 +74,10 @@ public class CoalitionReasoner {
             }
         }
 //        coalitionRepository.save(coalitions);
-        LOG.info("Coalitions created: " + coalitionRepository.count()/types.length);
+        int size = coalitions.size()/types.length;
+        LOG.info("Coalitions created: " + size);
+        int[] total = new int[]{size, size, size};
+        writeResults(time, new int[]{0, 0, 0}, total, total);
         return coalitions.size();
     }
 
@@ -248,7 +250,7 @@ public class CoalitionReasoner {
         for(String type : types){
            List<Long> scheduledCoalitions =
                     scheduledRepository.findByScheduleType(type).stream().filter(s ->
-                            s.getFinishTime() < finalTime)
+                            s.getFinishTime() <= finalTime)
                             .map(ScheduledJob::getCoalitionId)
                             .collect(Collectors.toList());
 //            LOG.severe(String.format("%s Scheduled Jobs: %d \n", type, scheduledJobs.get(type).size()));
