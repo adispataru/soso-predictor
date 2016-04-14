@@ -295,11 +295,13 @@ public class JobRequester {
             if(!f.exists()){
                 FileWriter header = new FileWriter(f);
                 header.write("#time rb-treeJobs tasks linearJobs tasks randomJobs tasks sent total");
+                header.close();
             }
             FileWriter fileWriter = new FileWriter(f, true);
             fileWriter.write(time + " ");
             for (String s : JobRequester.types) {
                 fileWriter.write(notScheduledJobs.get(s) + " " + notScheduledTasks.get(s) + " ");
+
             }
             fileWriter.write(sent + " " + total + "\n");
             fileWriter.close();
