@@ -221,7 +221,6 @@ public class FineTuner {
         List<Future<?>> futures = new ArrayList<Future<?>>(machines.size());
         LOG.info("Computing usage on " + numProcs + " threads.");
         int count = 0;
-        int typeNo = 0;
 
 //            long filterTime = System.currentTimeMillis();
 
@@ -230,6 +229,7 @@ public class FineTuner {
 //            Map<String, List<TaskUsage>> usageMap = new TreeMap<>();
 //            Map<String, TaskUsage> machineLoad = new TreeMap<>();
 //            Map<String, TaskUsage> machineUsage = new TreeMap<>();
+            int typeNo = 0;
             for(String type : types) {
                 final int finalTypeNo = typeNo;
 
