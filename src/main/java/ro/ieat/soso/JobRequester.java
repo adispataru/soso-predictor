@@ -224,14 +224,13 @@ public class JobRequester {
 
             LOG.info(String.format("Found %d jobs", jobs.size()));
             long total = 0;
-            long sent = 0;
             for (Job j : jobs) {
 
                 //LOG.info("For job " + j.getJobId() + " status is " + j.getStatus() + " at time " + j.getSubmitTime());
                 total += j.getTaskHistory().size();
 
                 if (j.getStatus() != null) {
-                    sent += j.getTaskHistory().size();
+
 
                     //Send job request to main matcher
 
@@ -256,6 +255,7 @@ public class JobRequester {
                     LOG.info("Not sending " + j.getJobId() + " because status is " + j.getStatus() + " at time " + j.getSubmitTime());
                 }
             }
+            int sent = jobs.size();
             writeJobSchedulingErrors(notScheduledTasks, notScheduledJobs, sent, total, time);
 
 
@@ -289,12 +289,13 @@ public class JobRequester {
 
     }
 
+    //TODO Write total jobs
     public void writeJobSchedulingErrors(Map<String, Long> notScheduledTasks, Map<String, Long> notScheduledJobs, long sent, long total, long time){
         try {
             File f = new File("./output/results/schedule/not_planned_errors");
             if(!f.exists()){
                 FileWriter header = new FileWriter(f);
-                header.write("#time rb-treeJobs tasks linearJobs tasks randomJobs tasks sent total");
+                header.write("#time rb-treeJobs tasks linearJobs tasks randomJobs tasks sentJobs sentTasks");
                 header.close();
             }
             FileWriter fileWriter = new FileWriter(f, true);
