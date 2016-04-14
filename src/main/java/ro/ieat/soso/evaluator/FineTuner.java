@@ -226,9 +226,7 @@ public class FineTuner {
             final int finalTypeNo = typeNo;
 
 //            long filterTime = System.currentTimeMillis();
-            Map<String, List<TaskUsage>> usageMap = new TreeMap<>();
-            Map<String, TaskUsage> machineLoad = new TreeMap<>();
-            Map<String, TaskUsage> machineUsage = new TreeMap<>();
+
 
             for (Machine m : machines) {
 
@@ -236,6 +234,9 @@ public class FineTuner {
 
                     @Override
                     public void run() {
+                        Map<String, List<TaskUsage>> usageMap = new TreeMap<>();
+                        Map<String, TaskUsage> machineLoad = new TreeMap<>();
+                        Map<String, TaskUsage> machineUsage = new TreeMap<>();
                         usageMap.put(type, allTaskUsageList.stream().filter(t ->
                                 isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobs.get(type), type))
                                 .collect(Collectors.toList()));
