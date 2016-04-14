@@ -224,16 +224,18 @@ public class FineTuner {
         int typeNo = 0;
         for(String type : types) {
             final int finalTypeNo = typeNo;
-            futures.add(executorService.submit(new Runnable(){
 
-                @Override
-                public void run() {
 //            long filterTime = System.currentTimeMillis();
-                    Map<String, List<TaskUsage>> usageMap = new TreeMap<>();
-                    Map<String, TaskUsage> machineLoad = new TreeMap<>();
-                    Map<String, TaskUsage> machineUsage = new TreeMap<>();
+            Map<String, List<TaskUsage>> usageMap = new TreeMap<>();
+            Map<String, TaskUsage> machineLoad = new TreeMap<>();
+            Map<String, TaskUsage> machineUsage = new TreeMap<>();
 
-                    for (Machine m : machines) {
+            for (Machine m : machines) {
+
+                futures.add(executorService.submit(new Runnable() {
+
+                    @Override
+                    public void run() {
                         usageMap.put(type, allTaskUsageList.stream().filter(t ->
                                 isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobs.get(type), type))
                                 .collect(Collectors.toList()));
@@ -256,12 +258,12 @@ public class FineTuner {
                         //actually makes sense to subtract usage of task which produced error.
 
                         boolean overcommit = false;
-                        while((machineUsage.get(type).getCpu() > THRESHOLD * m.getCpu() ||
+                        while ((machineUsage.get(type).getCpu() > THRESHOLD * m.getCpu() ||
                                 machineUsage.get(type).getMemory() > THRESHOLD * m.getMemory()) && i >= 0) {
                             LOG.info(type + ":\nMachine usage" + machineUsage.get(type).getCpu() + " " + machineUsage.get(type).getMemory() +
                                     "\nMachine capacity " + m.getCpu() + " " + m.getMemory());
 
-                            if(usageMap.get(type).get(i).getCpu() > 0.1) {
+                            if (usageMap.get(type).get(i).getCpu() > 0.1) {
                                 machineUsage.get(type).substractTaskUsage(usageMap.get(type).get(i));
                                 synchronized (schedulingErrors[finalTypeNo]) {
                                     schedulingErrors[finalTypeNo]++;
@@ -272,22 +274,22 @@ public class FineTuner {
                             overcommit = true;
                         }
 
-                        if(overcommit) {
+                        if (overcommit) {
                             logOvercommit(LOG, i);
                         }
+
                     }
-                }
-            }));
+                }));
+            }
             typeNo++;
         }
         for (Future<?> f : futures) {
             f.get(); // wait for a processor to complete
         }
-        LOG.info("all items processed");
 
 
         long computeMeasurementTime = System.currentTimeMillis();
-        LOG.info("Computing time: " + (computeMeasurementTime - measurementTime) / 1000);
+        LOG.info("Computing time: " + (computeMeasurementTime - measurementTime) / 1000 + " seconds");
 //        LOG.info("Writing usage error.");
 //        writeUsageError(usageErrorMap, time);
 
