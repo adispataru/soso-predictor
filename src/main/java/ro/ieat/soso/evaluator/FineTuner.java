@@ -79,7 +79,9 @@ public class FineTuner {
 
     public boolean isTaskScheduledOnMachine(Long jobId, Long taskIndex, Long taskMachineId, Long machineId,
                                             List<ScheduledJob> list, String type) {
-        scheduledJobMap.putIfAbsent(type, new TreeMap<>());
+        synchronized (scheduledJobMap) {
+            scheduledJobMap.putIfAbsent(type, new TreeMap<>());
+        }
 
         if(list.get(0) == null)
             LOG.severe("null item in list");
