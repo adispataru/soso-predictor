@@ -74,7 +74,7 @@ public class CoalitionReasoner {
             }
         }
 //        coalitionRepository.save(coalitions);
-        int size = coalitions.size()/types.length;
+        int size = coalitions.size();
         LOG.info("Coalitions created: " + size);
         int[] total = new int[]{size, size, size};
         writeResults(time, new int[]{0, 0, 0}, total, total);
