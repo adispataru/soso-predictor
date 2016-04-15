@@ -250,7 +250,7 @@ public class CoalitionReasoner {
         for(String type : types){
            List<Long> scheduledCoalitions =
                     scheduledRepository.findByScheduleType(type).stream().filter(s ->
-                            s.getFinishTime() <= finalTime)
+                            s.getFinishTime() > finalTime)
                             .map(ScheduledJob::getCoalitionId)
                             .collect(Collectors.toList());
 //            LOG.severe(String.format("%s Scheduled Jobs: %d \n", type, scheduledJobs.get(type).size()));
