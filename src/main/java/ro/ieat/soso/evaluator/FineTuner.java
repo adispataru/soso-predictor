@@ -79,9 +79,6 @@ public class FineTuner {
 
     public boolean isTaskScheduledOnMachine(Long jobId, Long taskIndex, Long taskMachineId, Long machineId,
                                             List<ScheduledJob> list, String type) {
-        synchronized (scheduledJobMap) {
-            scheduledJobMap.putIfAbsent(type, new TreeMap<>());
-        }
 
         synchronized (scheduledJobMap.get(type)) {
             if (list.size() > 0 && !scheduledJobMap.get(type).containsKey(list.get(0).getJobId())) {
@@ -175,6 +172,8 @@ public class FineTuner {
         final Long finalTime = time;
         Map<String, List<ScheduledJob>> scheduledJobs = new TreeMap<>();
         for(String type : types){
+            scheduledJobMap.putIfAbsent(type, new TreeMap<>());
+
             scheduledJobs.put(type,
                     scheduledRepository.findByScheduleType(type).stream().filter(s ->
                             s.getTimeToStart() > (finalTime - Configuration.STEP *Configuration.TIME_DIVISOR))

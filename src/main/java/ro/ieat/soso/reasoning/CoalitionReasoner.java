@@ -260,11 +260,14 @@ public class CoalitionReasoner {
 
             List<Coalition> coalitionList = coalitionRepository.findByScheduleClass(component);
             if(coalitionList.size() > 0) {
+                LOG.info("Assigned coalitions for type = " + type + ": " + coalitionList.size());
                 coalitionList.stream().filter(c -> !scheduledCoalitions.contains(c.getId())).forEach(c -> {
                     coalitionClient.deleteCoalitionFromComponent(c, component);
                     toDelete.add(c);
                     toReorganize.addAll(c.getMachines());
                 });
+            }else{
+                LOG.severe("No coalition was assigned for type = " + type);
             }
 
             List<Coalition> reorganized = createCoalitions(toReorganize, time, coalitionStrategyId);
