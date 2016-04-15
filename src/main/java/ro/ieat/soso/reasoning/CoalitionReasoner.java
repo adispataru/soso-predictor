@@ -40,7 +40,7 @@ public class CoalitionReasoner {
     private static Logger LOG = Logger.getLogger(CoalitionReasoner.class.toString());
     public static long c_id = 1;
     private CoalitionClient coalitionClient = new CoalitionClient();
-    private int coalitionStrategyId = 1; // 0 - ACC; 1 - RaL; 2 - Random
+    private int coalitionStrategyId = 0; // 0 - ACC; 1 - RaL; 2 - Random
 
     @Autowired
     CoalitionRepository coalitionRepository;
@@ -222,7 +222,7 @@ public class CoalitionReasoner {
             case 0:
                 //ACC
                 AntColonyClusteringStrategy acs = new AntColonyClusteringStrategy(machineMaxTaskMap);
-                 result = acs.createCoalitions(machines);
+                result = acs.createCoalitions(machines);
                 break;
             case 1:
                 //RaL
@@ -248,11 +248,12 @@ public class CoalitionReasoner {
         int[] created = new int[3];
         int[] total = new int[3];
         for(String type : types){
-           List<Long> scheduledCoalitions =
+
+            Set<Long> scheduledCoalitions =
                     scheduledRepository.findByScheduleType(type).stream().filter(s ->
                             s.getFinishTime() > finalTime)
                             .map(ScheduledJob::getCoalitionId)
-                            .collect(Collectors.toList());
+                            .collect(Collectors.toSet());
 //            LOG.severe(String.format("%s Scheduled Jobs: %d \n", type, scheduledJobs.get(type).size()));
 
             if(scheduledCoalitions.size() > 0 ){
