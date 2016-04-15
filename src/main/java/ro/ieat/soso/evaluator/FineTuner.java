@@ -82,9 +82,7 @@ public class FineTuner {
         synchronized (scheduledJobMap) {
             scheduledJobMap.putIfAbsent(type, new TreeMap<>());
         }
-
-        if(list.get(0) == null)
-            LOG.severe("null item in list");
+        
         synchronized (scheduledJobMap.get(type)) {
             if (list.size() > 0 && !scheduledJobMap.get(type).containsKey(list.get(0).getJobId())) {
 
