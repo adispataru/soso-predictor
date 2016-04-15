@@ -82,7 +82,7 @@ public class FineTuner {
         synchronized (scheduledJobMap) {
             scheduledJobMap.putIfAbsent(type, new TreeMap<>());
         }
-        
+
         synchronized (scheduledJobMap.get(type)) {
             if (list.size() > 0 && !scheduledJobMap.get(type).containsKey(list.get(0).getJobId())) {
 
@@ -229,63 +229,61 @@ public class FineTuner {
 //            Map<String, List<TaskUsage>> usageMap = new TreeMap<>();
 //            Map<String, TaskUsage> machineLoad = new TreeMap<>();
 //            Map<String, TaskUsage> machineUsage = new TreeMap<>();
-            int typeNo = 0;
-            for(String type : types) {
-                final int finalTypeNo = typeNo;
+            futures.add(executorService.submit(() -> {
+                int typeNo = 0;
+                for (String type : types) {
+                    final int finalTypeNo = typeNo;
 
-                futures.add(executorService.submit(new Runnable() {
 
-                    @Override
-                    public void run() {
-                        List<TaskUsage> usage = allTaskUsageList.stream().filter(t ->
-                                isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobs.get(type), type))
-                                .collect(Collectors.toList());
-                        TaskUsage machineLoad = TaskUsageCombiner.
-                                combineTaskUsageList(usage, lowTime);
+                    List<TaskUsage> usage = allTaskUsageList.stream().filter(t ->
+                            isTaskScheduledOnMachine(t.getJobId(), t.getTaskIndex(), t.getMachineId(), m.getId(), scheduledJobs.get(type), type))
+                            .collect(Collectors.toList());
+                    TaskUsage machineLoad = TaskUsageCombiner.
+                            combineTaskUsageList(usage, lowTime);
 
-                        TaskUsage machineUsage = new TaskUsage();
+                    TaskUsage machineUsage = new TaskUsage();
 //                        machineUsage.put(type, new TaskUsage());
-                        machineUsage.addTaskUsage(machineLoad);
+                    machineUsage.addTaskUsage(machineLoad);
 
 //            LOG.info("Done in " + (System.currentTimeMillis() - filterTime) + " s.");
 //            LOG.info("Usage size: rb-tree/random" + usageList.size() + " / " + usageListRandom.size());
 //            List<TaskUsage> usageWithoutScheduled = usageList.stream().filter(t -> !jobListContainsId(jobList, t.getId()))
 //                    .collect(Collectors.toList());
-                        machineLoad.divideCPU(m.getCpu());
-                        machineLoad.divideMemory(m.getMemory());
-                        synchronized (loadMap.get(type)) {
-                            loadMap.get(type).put(m.getId(), machineLoad);
-                        }
-
-                        //overcommit
-                        int i = usage.size() - 1;
-                        //actually makes sense to subtract usage of task which produced error.
-
-                        boolean overcommit = false;
-                        while ((machineUsage.getCpu() > THRESHOLD * m.getCpu() ||
-                                machineUsage.getMemory() > THRESHOLD * m.getMemory()) && i >= 0) {
-                            LOG.info(type + ":\nMachine usage" + machineUsage.getCpu() + " " + machineUsage.getMemory() +
-                                    "\nMachine capacity " + m.getCpu() + " " + m.getMemory());
-
-                            if (usage.get(i).getCpu() > 0.1) {
-                                machineUsage.substractTaskUsage(usage.get(i));
-                                synchronized (schedulingErrors[finalTypeNo]) {
-                                    schedulingErrors[finalTypeNo]++;
-                                }
-                            }
-
-                            i--;
-                            overcommit = true;
-                        }
-
-                        if (overcommit) {
-                            logOvercommit(LOG, i);
-                        }
-
+                    machineLoad.divideCPU(m.getCpu());
+                    machineLoad.divideMemory(m.getMemory());
+                    synchronized (loadMap.get(type)) {
+                        loadMap.get(type).put(m.getId(), machineLoad);
                     }
-                }));
-                typeNo++;
-            }
+
+                    //overcommit
+                    int i = usage.size() - 1;
+                    //actually makes sense to subtract usage of task which produced error.
+
+                    boolean overcommit = false;
+                    while ((machineUsage.getCpu() > THRESHOLD * m.getCpu() ||
+                            machineUsage.getMemory() > THRESHOLD * m.getMemory()) && i >= 0) {
+                        LOG.info(type + ":\nMachine usage" + machineUsage.getCpu() + " " + machineUsage.getMemory() +
+                                "\nMachine capacity " + m.getCpu() + " " + m.getMemory());
+
+                        if (usage.get(i).getCpu() > 0.1) {
+                            machineUsage.substractTaskUsage(usage.get(i));
+                            synchronized (schedulingErrors[finalTypeNo]) {
+                                schedulingErrors[finalTypeNo]++;
+                            }
+                        }
+
+                        i--;
+                        overcommit = true;
+                    }
+
+                    if (overcommit) {
+                        logOvercommit(LOG, i);
+                    }
+
+                    typeNo++;
+                }
+
+            }));
 
         }
         for (Future<?> f : futures) {
