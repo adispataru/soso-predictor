@@ -277,6 +277,7 @@ public class CoalitionReasoner {
             List<Coalition> reorganized = createCoalitions(toReorganize, time, coalitionStrategyId);
 
             for (Coalition c : reorganized) {
+                c.setScheduleClass(component);
                 sendCoalitionToComponent(c, time, component);
             }
             deleted[component] = toDelete.size();
