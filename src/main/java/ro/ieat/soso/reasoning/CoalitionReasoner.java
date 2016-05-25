@@ -52,7 +52,7 @@ public class CoalitionReasoner {
     TaskUsageMappingRepository taskUsageMappingRepository;
     @Autowired
     ScheduledRepository scheduledRepository;
-    private Double gamma = 0.8;
+    private Double gamma = 0.2;
 
 
     @RequestMapping(method = RequestMethod.GET, path = "/coalitions/init/{time}")
