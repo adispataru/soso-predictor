@@ -265,7 +265,7 @@ public class CoalitionReasoner {
                 LOG.severe("No coalition was assigned for type = " + type);
             }
             List<Coalition> toDelete = new ArrayList<>();
-            List<Machine> toReorganize = new ArrayList<>();
+            Set<Machine> toReorganize = new HashSet<>();
             final int component = i;
 
             List<Coalition> coalitionList = coalitionRepository.findByScheduleClass(component);
@@ -279,8 +279,11 @@ public class CoalitionReasoner {
                     }
                 });
             }
+            if(toReorganize.size() < 10){
+                coalitionList.stream().forEach(c -> toReorganize.addAll(c.getMachines()));
+            }
 
-            List<Coalition> reorganized = createCoalitions(toReorganize, time, coalitionStrategyId);
+            List<Coalition> reorganized = createCoalitions(new ArrayList<>(toReorganize), time, coalitionStrategyId);
 
             for (Coalition c : reorganized) {
                 c.setScheduleClass(component);
