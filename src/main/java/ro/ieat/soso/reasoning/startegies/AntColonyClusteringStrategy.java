@@ -321,13 +321,17 @@ public class AntColonyClusteringStrategy extends AbstractCoalitionStrategy {
     private void antLearnThreshold(List<Ant> ants){
         int sampleSize = 500;
 
+        Random r = new Random();
         for(int i = 0; i < ants.size(); i++){
 
             similarityMap.put(i, new TreeMap<>());
             Ant a = ants.get(i);
             Double maxSimilarity = Double.MIN_VALUE;
             Double average = .0;
-            int index = new Random().nextInt(ants.size() - sampleSize);
+            int s = ants.size() - sampleSize;
+            if(s < 0 )
+                break;
+            int index = r.nextInt(s);
             for(int j = 0; j < sampleSize; j++){
                 Double similarity;
                 if(j + index == i)
