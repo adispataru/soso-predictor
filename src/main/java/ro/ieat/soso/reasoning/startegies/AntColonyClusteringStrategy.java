@@ -192,6 +192,8 @@ public class AntColonyClusteringStrategy extends AbstractCoalitionStrategy {
         int acc = 0, rej = 0;
         for (int i = 0; i < total; i++){
             Integer first = r.nextInt(ants.size());
+            while (similarityMap.get(first) == null)
+                first = r.nextInt(ants.size());
             //select ant to meet. it should have computed a similarity
             int secondPosition = r.nextInt(similarityMap.get(first).size());
             Iterator<Integer> iterator = similarityMap.get(first).keySet().iterator();
