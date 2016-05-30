@@ -250,9 +250,9 @@ public class FineTuner {
 //                    .collect(Collectors.toList());
                     machineLoad.divideCPU(m.getCpu());
                     machineLoad.divideMemory(m.getMemory());
-                    synchronized (loadMap.get(type)) {
+//                    synchronized (loadMap.get(type)) {
                         loadMap.get(type).put(m.getId(), machineLoad);
-                    }
+//                    }
 
                     //overcommit
                     int i = usage.size() - 1;
