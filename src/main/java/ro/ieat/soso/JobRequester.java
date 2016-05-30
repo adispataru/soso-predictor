@@ -59,8 +59,8 @@ public class JobRequester {
 
     @Autowired
     ScheduledRepository scheduledRepository;
-    String[] jobRequestTargetUrls = {"http://localhost:8090/job", "http://localhost:8091/job", "http://localhost:8092/job"};
-    public static String[] types = {"rb-tree", "linear", "random"};
+    String[] jobRequestTargetUrls = {"http://localhost:8090/job", "http://localhost:8091/job"};
+    public static String[] types = {"rb-tree", "linear"};
 
 
 
@@ -274,7 +274,7 @@ public class JobRequester {
             LOG.info("Predicting job runtime");
             template.put("http://localhost:8088/predict/job/" + initEnd +"/" + time, 1);
             LOG.info(String.format("Done in %d ms.", System.currentTimeMillis() - time));
-            updateCoalition = true;
+//            updateCoalition = true;
         }
 
 
