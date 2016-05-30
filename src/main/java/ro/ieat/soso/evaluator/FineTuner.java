@@ -140,7 +140,7 @@ public class FineTuner {
                 findByStartTimeGreaterThanAndEndTimeLessThan(lowTime - 1, time + 1);
         LOG.info("This window tasks number: " + allTaskUsageList.size());
 
-        Map<String, Map<Long, TaskUsage>> loadMap = new TreeMap<>();
+        Map<String, Map<Long, TaskUsage>> loadMap = new HashMap<>();
         Map<Long, TaskUsage> loadMapRandom = new TreeMap<>();
 
 //        Map<Long, UsageError> usageErrorMap = new TreeMap<>();
@@ -198,7 +198,7 @@ public class FineTuner {
         for(String type : types){
 //            latenessMap.put(type, new ArrayList<>());
             scheduledTasks.put(type, 0L);
-            loadMap.put(type, new TreeMap<>());
+            loadMap.put(type, new HashMap<>());
 
             for (ScheduledJob j : scheduledJobs.get(type)) {
                 long real = getJobScheduleTime(jobList, j.getJobId());
