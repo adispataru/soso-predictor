@@ -22,7 +22,7 @@ public class CoalitionClient{
     private static RestTemplate restTemplate;
     private static final Logger LOG = Logger.getLogger("CoalitionClient");
     public static String[] targetUrls = {"http://localhost:8090/",
-            "http://localhost:8091/", "http://localhost:8092/"};
+            "http://localhost:8091/"};
 
     public void sendCoalition(Coalition c){
 
